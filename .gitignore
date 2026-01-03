@@ -1,0 +1,55 @@
+# Folders and files to exclude
+.env
+
+# Virtual environment folders
+venv/
+env/
+.env/
+.venv/
+env.bak/
+venv.bak/
+
+# Folders with caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Folders with temporary files
+*.log
+*.pot
+
+# Folders with dependencies
+*.egg-info/
+dist/
+build/
+versions/
+
+# IDE Settings
+.idea/
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Other files
+*.coverage
+*.hypothesis/
+.coverage.*
+.cache
+*.egg
+
+# Configuration files
+*.json
+*.yml
+*.yaml
+*.ini
+*.pid
+*.spec
+
+# Ignore SQL files
+*.sql
+
+# Databases
+*.db
