@@ -1,0 +1,8 @@
+DATABASE_URL=путь к базе данных(postgresql)
+SECRET_KEY=секретный ключ
+
+APP_NAME="Название"
+DEBUG=True
+ACCESS_TOKEN_EXPIRE_MINUTES=Время жизни токена
+ALGORITHM=HS256
+ALLOWED_ORIGINS=список хостов
