@@ -1,7 +1,10 @@
 from fastapi import HTTPException
-from app.modules.orders.models import Order, OrderItem
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.modules.cart.service import CartService
+from app.modules.orders.models import Order, OrderItem, OrderStatus
 from app.modules.cart.repository import CartRepository
 from app.modules.orders.repository import OrderRepository
+from app.modules.payment.stripe_client import create_payment_intent
 
 
 class OrderService:
@@ -64,3 +67,64 @@ class OrderService:
 
         await self.order_repo.create(order)
         return order
+
+
+def calculate_order_total(items: list[OrderItem]) -> int:
+    """Returns the order amount in minimum units (cents)."""
+
+    total = 0
+    for item in items:
+        total += int(item.price * 100) * item.quantity
+    return total
+
+
+async def checkout_cart(db: AsyncSession, user) -> dict:
+
+    cart_repo = CartRepository(db)
+    cart_service = CartService(cart_repo)
+
+    cart_items = await cart_service.get_cart_items_for_checkout(user.id)
+
+    if not cart_items:
+        raise ValueError("Cart is empty")
+
+    order = Order(
+        user_id=user.id,
+        status=OrderStatus.PENDING,
+        total_amount=0,
+    )
+    db.add(order)
+    await db.flush()
+
+    order_items = [
+        OrderItem(
+            order_id=order.id,
+            product_id=item.product.id,
+            product_name=item.product.name,
+            price=item.product.price,
+            quantity=item.quantity,
+        )
+        for item in cart_items
+    ]
+    db.add_all(order_items)
+
+    order.total_amount = calculate_order_total(order_items)
+    await db.commit()
+
+    amount_for_stripe: int = int(order.total_amount)
+    intent = create_payment_intent(
+        amount=amount_for_stripe,
+        metadata={
+            "order_id": str(order.id),
+            "user_id": str(user.id),
+        },
+
+    )
+
+    order.stripe_payment_intent_id = intent.id
+    await db.commit()
+
+    return {
+        "order_id": order.id,
+        "client_secret": intent.client_secret,
+    }

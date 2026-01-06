@@ -1,6 +1,23 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.modules.orders.models import Order
+from app.modules.orders.models import Order, OrderItem
+from sqlalchemy.orm import Session
+
+
+def create_order(db: Session, order: Order) -> Order:
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+def add_order_items(db: Session, items: list[OrderItem]) -> None:
+    db.add_all(items)
+    db.commit()
+
+
+def get_order_by_id(db: Session, order_id: int) -> Order | None:
+    return db.get(Order, order_id)
 
 
 class OrderRepository:

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator, field_validator
 from datetime import datetime
 
 class UserCreate(BaseModel):
@@ -12,6 +12,17 @@ class UserCreate(BaseModel):
     """
     email: EmailStr
     password: str
+    #
+    # @field_validator('password')
+    # def validate_password_length(self, v):
+    #     """Validate password length in bytes."""
+    #     byte_length = len(v.encode('utf-8'))
+    #     if byte_length > 100:
+    #         raise ValueError(
+    #             f'Password is too long ({byte_length} bytes). '
+    #             f'Maximum recommended length is 100 bytes.'
+    #         )
+    #     return v
 
 
 class UserRead(BaseModel):
@@ -50,3 +61,8 @@ class Token(BaseModel):
     """
     access_token: str
     token_type: str = "bearer"
+
+
+class LoginData(BaseModel):
+    email: EmailStr
+    password: str

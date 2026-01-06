@@ -36,12 +36,12 @@ class CartService:
                 item.quantity += data.quantity
                 return
 
-        cart.items.append(
-            CartItem(
-                product_id=data.product_id,
-                quantity=data.quantity,
-            )
+        new_item = CartItem(
+            cart_id=cart.id,
+            product_id=data.product_id,
+            quantity=data.quantity,
         )
+        cart.items.append(new_item)
 
 
     async def get_cart(self, user_id: int) -> CartRead:
@@ -64,7 +64,10 @@ class CartService:
 
         items: list[CartItemRead] = []
 
-        total_price = Decimal("0.00")
+        total_price = sum(
+            (item.product.price * item.quantity for item in cart.items),
+            Decimal("0.00")
+        )
 
         for item in cart.items:
             items.append(
@@ -81,3 +84,16 @@ class CartService:
             items=items,
             total_price=total_price,
         )
+
+
+    async def get_cart_items_for_checkout(self, user_id: int) -> list[CartItem]:
+        """
+        Возвращает CartItem модели (НЕ schemas)
+        Используется только для checkout
+        """
+        cart = await self.repo.get_cart_with_items(user_id)
+
+        if not cart:
+            return []
+
+        return list(cart.items)

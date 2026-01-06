@@ -15,6 +15,7 @@ class CartRepository:
     def __init__(self, session):
         self.session = session
 
+
     async def get_or_create_cart(self, user_id: int) -> Cart:
         """Get existing cart or create a new one for the user.
 
@@ -28,9 +29,12 @@ class CartRepository:
             Cart: The user's cart (existing or newly created)
         """
 
-        cart = await self.session.scalar(
-            select(Cart).where(Cart.user_id == user_id)
+        result = await self.session.execute(
+            select(Cart)
+            .where(Cart.user_id == user_id)
+            .options(selectinload(Cart.items))
         )
+        cart = result.scalar_one_or_none()
 
         if not cart:
             cart = Cart(user_id=user_id)

@@ -19,7 +19,7 @@ async def add_to_cart(
     data: CartItemRead,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-    admin = Depends(get_current_admin),
+   # admin = Depends(get_current_admin),
 ):
     """Add a product to the user's shopping cart.
 
@@ -30,7 +30,6 @@ async def add_to_cart(
         data: CartItemRead containing product_id and quantity
         user: Authenticated user (from token)
         session: Database session
-        admin: Admin user verification
 
     Returns:
         CartRead: Updated cart with all items and total price
@@ -42,10 +41,7 @@ async def add_to_cart(
 
     cart = await service.get_cart(user.id)
 
-    total_price = sum(
-        (item.product.price * item.quantity for item in cart.items),
-        Decimal("0.00")
-    )
+    total_price = sum((item.price * item.quantity for item in cart.items), Decimal(0))
 
     return CartRead(
         items=[CartItemRead.model_validate(item) for item in cart.items],
@@ -73,10 +69,7 @@ async def get_cart(
     service = CartService(CartRepository(session))
     cart = await service.get_cart(user.id)
 
-    total_price = sum(
-        (item.product.price * item.quantity for item in cart.items),
-        Decimal("0.00")
-    )
+    total_price = sum((item.price * item.quantity for item in cart.items), Decimal(0))
 
     return CartRead(
         items=[CartItemRead.model_validate(item) for item in cart.items],

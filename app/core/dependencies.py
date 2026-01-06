@@ -6,7 +6,7 @@ from app.core.database import get_session
 from app.core.security import decode_access_token
 from app.users.models import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme),

@@ -5,7 +5,11 @@ from app.users.router import router as users_router
 from app.modules.products.router import router as products_router
 from app.modules.cart.router import router as cart_router
 from app.modules.orders.router import router as orders_router
+from app.modules.payment.router import router as payment_router
+import stripe
+import os
 
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -22,8 +26,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Подключаем роутеры ---
-app.include_router(users_router, prefix="/users", tags=["Users"])
-app.include_router(products_router, prefix="/products", tags=["Products"])
-app.include_router(cart_router, prefix="/cart", tags=["Cart"])
-app.include_router(orders_router, prefix="/orders", tags=["Orders"])
+app.include_router(users_router, tags=["Users"])
+app.include_router(products_router, tags=["Products"])
+app.include_router(cart_router, tags=["Cart"])
+app.include_router(orders_router, tags=["Orders"])
+app.include_router(payment_router, tags=["Payment"])

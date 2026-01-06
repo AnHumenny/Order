@@ -1,40 +1,48 @@
+import bcrypt
+import hashlib
+from dotenv import load_dotenv
 from passlib.context import CryptContext
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 import jwt
-from app.core.config import settings
+import os
+load_dotenv()
 
 
-SECRET_KEY = settings.SECRET_KEY
-ALGORITHM = settings.ALGORITHM
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+MAX_PASSWORD_LEN = 1024
+
 def hash_password(password: str) -> str:
-    """Hash a plain text password using bcrypt.
-
-    Args:
-        password: Plain text password to hash
-
-    Returns:
-        str: Hashed password string
     """
-    return pwd_context.hash(password)
+    Hash a plain text password using bcrypt.
+    Uses SHA-256 first to avoid the 72-byte limit issue.
+    """
+    if not password:
+        raise ValueError("Password cannot be empty")
+
+    sha256_hash = hashlib.sha256(password.encode("utf-8")).digest()
+
+    hashed = bcrypt.hashpw(sha256_hash, bcrypt.gensalt())
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a hashed password.
+    """Verify a plain password against a hashed password."""
 
-    Args:
-        plain_password: Password to verify
-        hashed_password: Hashed password to compare against
+    if not plain_password or not hashed_password:
+        return False
 
-    Returns:
-        bool: True if passwords match, False otherwise
-        """
-    return pwd_context.verify(plain_password, hashed_password)
+    sha256_hash = hashlib.sha256(plain_password.encode("utf-8")).digest()
+    try:
+        return bcrypt.checkpw(sha256_hash, hashed_password.encode("utf-8"))
+    except ValueError:
+        return False
 
 
 def create_access_token(data: dict, expires_delta: int | None = None) -> str:
@@ -48,19 +56,12 @@ def create_access_token(data: dict, expires_delta: int | None = None) -> str:
         str: Encoded JWT access token
     """
     to_encode = data.copy()
-
-    expire = datetime.now(UTC) + timedelta(
-        minutes=expires_delta or settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-
+    if expires_delta:
+        expire = datetime.utcnow() + timedelta(minutes=expires_delta) #поправить
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)   #поправить
     to_encode.update({"exp": expire})
-
-    return jwt.encode(
-        to_encode,
-        settings.SECRET_KEY.get_secret_value(),
-        algorithm=settings.ALGORITHM,
-    )
-
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_access_token(token: str) -> dict:
     """Decode and verify a JWT access token.
@@ -75,4 +76,3 @@ def decode_access_token(token: str) -> dict:
         JWTError: If token is invalid or expired
     """
     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-

@@ -1,9 +1,16 @@
+import enum
 from decimal import Decimal
 from datetime import datetime
-from sqlalchemy import ForeignKey, DateTime, Numeric, String
+from sqlalchemy import ForeignKey, DateTime, Numeric, String, Enum, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+
+
+class OrderStatus(str, enum.Enum):
+    PENDING = "pending"
+    PAID = "paid"
+    FAILED = "failed"
 
 
 class Order(Base):
@@ -31,8 +38,19 @@ class Order(Base):
 
     status: Mapped[str] = mapped_column(
         String(50),
-        default="created",
+        default=OrderStatus.PENDING,
         nullable=False,
+    )
+
+    total_amount: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+    )
+
+    stripe_payment_intent_id: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(

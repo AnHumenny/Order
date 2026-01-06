@@ -6,8 +6,10 @@ from app.core.dependencies import get_current_user
 from app.users.models import User
 from app.modules.orders.schemas import OrderRead, OrderItemRead
 from app.modules.orders.repository import OrderRepository
-from app.modules.orders.service import OrderService
+from app.modules.orders.service import OrderService, checkout_cart
 from app.modules.cart.repository import CartRepository
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 
 router = APIRouter(
@@ -53,3 +55,19 @@ async def create_order(
         items=[OrderItemRead.model_validate(item) for item in order.items],
         total_price=total_price,
     )
+
+
+@router.post("/checkout")
+async def checkout(
+    db: AsyncSession = Depends(get_session),
+    user=Depends(get_current_user),
+):
+    """Process cart checkout for authenticated user.
+
+    Returns checkout details or 400 error if cart is empty/invalid.
+    """
+
+    try:
+        return await checkout_cart(db, user)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
