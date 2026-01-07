@@ -8,8 +8,10 @@ from app.core.database import Base
 
 
 class OrderStatus(str, enum.Enum):
+    DRAFT = "draft"
     PENDING = "pending"
     PAID = "paid"
+    CANCELED = "canceled"
     FAILED = "failed"
 
 
@@ -64,6 +66,8 @@ class Order(Base):
         cascade="all, delete-orphan",
     )
 
+    checkout_session_id = mapped_column(String, nullable=True, unique=True)
+
 
 class OrderItem(Base):
     """Individual product within an order.
@@ -84,9 +88,9 @@ class OrderItem(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    order_id: Mapped[int] = mapped_column(
-        ForeignKey("orders.id"),
-        nullable=False,
+    order_id = mapped_column(
+        ForeignKey("orders.id", ondelete="CASCADE"),
+        nullable=False
     )
 
     product_id: Mapped[int] = mapped_column(nullable=False)

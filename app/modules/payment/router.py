@@ -1,11 +1,16 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Request, HTTPException, Depends
 import stripe
 import os
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.modules.cart.repository import CartRepository
 from app.modules.cart.service import CartService
+from app.modules.orders.models import Order, OrderStatus
 from app.users.models import User
 
 router = APIRouter(
@@ -17,7 +22,10 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 
 @router.post("/")
-async def stripe_webhook(request: Request):
+async def stripe_webhook(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+):
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
 
@@ -25,17 +33,40 @@ async def stripe_webhook(request: Request):
         event = stripe.Webhook.construct_event(
             payload, sig_header, STRIPE_WEBHOOK_SECRET
         )
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError:
-        raise HTTPException(status_code=400, detail="Invalid signature")
+    except Exception:
+        raise HTTPException(status_code=400)
 
     if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
+        checkout = event["data"]["object"]
 
-        print(f"Checkout completed for session {session['id']}")
+        checkout_session_id = checkout["id"]
 
-    return {"status": "success"}
+        order = await session.scalar(
+            select(Order)
+            .where(Order.checkout_session_id == checkout_session_id)
+        )
+
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+
+        if order.status == OrderStatus.PAID:
+            return {"status": "already processed"}
+
+        order.status = OrderStatus.PAID
+        order.paid_at = datetime.utcnow()
+
+        new_order = Order(
+            user_id=order.user_id,
+            status=OrderStatus.DRAFT,
+        )
+
+        session.add(new_order)
+        await session.commit()
+
+        print(f"Order {order.id} marked as PAID")
+
+    return {"status": "ok"}
+
 
 @router.post("/create-checkout-session")
 async def create_checkout_session(

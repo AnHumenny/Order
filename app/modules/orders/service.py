@@ -8,64 +8,57 @@ from app.modules.payment.stripe_client import create_payment_intent
 
 
 class OrderService:
-    """Service layer for order business logic.
 
-    Handles order creation and management, coordinating between
-    cart and order repositories.
-
-    Args:
-        order_repo: Repository for order data access
-        cart_repo: Repository for cart data access
-    """
-    def __init__(
-        self,
-        order_repo: OrderRepository,
-        cart_repo: CartRepository,
-    ):
+    def __init__(self, order_repo: OrderRepository, cart_repo: CartRepository):
         self.order_repo = order_repo
         self.cart_repo = cart_repo
 
 
     async def create_from_cart(self, user_id: int) -> Order:
-        """
-        Convert user's cart into a new order.
+        session = self.order_repo.session
+        print(f"[create_from_cart] START for user_id={user_id}")
 
-        Business logic:
-        1. Get user's cart with items
-        2. Validate cart is not empty
-        3. Create order with cart items as order items
-        4. Clear the cart
-        5. Persist the order
+        try:
+            async with session.begin():
+                print("[create_from_cart] Transaction BEGIN")
 
-        Args:
-            user_id: ID of the user placing the order
+                cart = await self.cart_repo.get_cart_with_items(user_id)
+                print(f"[create_from_cart] Cart loaded: {cart}")
+                print(f"[create_from_cart] Cart items BEFORE clear: "
+                      f"{[(i.product_id, i.quantity) for i in cart.items]}")
 
-        Returns:
-            Order: The created order
+                if not cart or not cart.items:
+                    print("[create_from_cart] Cart is empty, raising HTTPException")
+                    raise HTTPException(400, "Cart is empty")
 
-        Raises:
-            HTTPException: 400 if cart is empty
-        """
-        cart = await self.cart_repo.get_cart_with_items(user_id)
+                order = Order(user_id=user_id)
+                print("[create_from_cart] Order instance created")
 
-        if not cart or not cart.items:
-            raise HTTPException(400, "Cart is empty")
+                for item in cart.items:
+                    order_item = OrderItem(
+                        product_id=item.product_id,
+                        product_name=item.product.name,
+                        price=item.product.price,
+                        quantity=item.quantity,
+                    )
+                    order.items.append(order_item)
+                    print(f"[create_from_cart] Added OrderItem: {item.product_id}, qty={item.quantity}")
 
-        order = Order(user_id=user_id)
+                order.total_amount = calculate_order_total(order.items)
+                print(f"[create_from_cart] Order total_amount calculated: {order.total_amount}")
 
-        for item in cart.items:
-            order.items.append(
-                OrderItem(
-                    product_id=item.product_id,
-                    product_name=item.product.name,
-                    price=item.product.price,
-                    quantity=item.quantity,
-                )
-            )
+                cart.items[:] = []
+                print("[create_from_cart] Cart items cleared")
 
-        del cart.items[:]
+                await self.order_repo.create(order)
+                print(f"[create_from_cart] Order persisted with id={order.id}")
 
-        await self.order_repo.create(order)
+            print("[create_from_cart] Transaction COMMIT successfully")
+
+        except Exception as e:
+            print(f"[create_from_cart] TRANSACTION FAILED: {e}")
+            raise
+
         return order
 
 
