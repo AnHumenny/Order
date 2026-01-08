@@ -87,9 +87,9 @@ class CartService:
 
 
     async def get_cart_items_for_checkout(self, user_id: int) -> list[CartItem]:
-        """
-        Возвращает CartItem модели (НЕ schemas)
-        Используется только для checkout
+        """Returns the CartItem of the model (NOT schemas)
+
+        Used only for checkout
         """
         cart = await self.repo.get_cart_with_items(user_id)
 
@@ -97,3 +97,8 @@ class CartService:
             return []
 
         return list(cart.items)
+
+
+    async def clear_cart(self, user_id: int):
+        """Removed all the items in the user's shopping cart"""
+        await self.repo.clear_cart_items(user_id)

@@ -1,103 +1,148 @@
-from datetime import datetime
-
+import datetime
+import logging
+import os
 from fastapi import APIRouter, Request, HTTPException, Depends
 import stripe
-import os
-
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+from app.core.config import settings
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.modules.cart.models import CartItem
 from app.modules.cart.repository import CartRepository
 from app.modules.cart.service import CartService
-from app.modules.orders.models import Order, OrderStatus
+from app.modules.orders.models import Order, OrderStatus, OrderItem
 from app.users.models import User
 
 router = APIRouter(
-    prefix="/webhook",
-    tags=["Stripe Webhook"],
+    prefix="/payments",
+    tags=["Stripe"],
 )
 
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
+logger = logging.getLogger("uvicorn")
 
-@router.post("/")
+
+@router.post("/stripe/webhook")
 async def stripe_webhook(
     request: Request,
     session: AsyncSession = Depends(get_session),
 ):
     payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
+    sig = request.headers.get("stripe-signature")
 
     try:
         event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
+            payload, sig, STRIPE_WEBHOOK_SECRET
         )
-    except Exception:
-        raise HTTPException(status_code=400)
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(400, "Invalid signature")
 
-    if event["type"] == "checkout.session.completed":
-        checkout = event["data"]["object"]
+    event_type = event["type"]
+    data = event["data"]["object"]
 
-        checkout_session_id = checkout["id"]
+    logger.info("Stripe event: %s", event_type)
+
+    if event_type == "checkout.session.completed":
+        payment_intent_id = data.get("payment_intent")
+        checkout_session_id = data.get("id")
 
         order = await session.scalar(
-            select(Order)
-            .where(Order.checkout_session_id == checkout_session_id)
+            select(Order).where(
+                (Order.checkout_session_id == checkout_session_id) |
+                (Order.stripe_payment_intent_id == payment_intent_id)
+            )
         )
 
         if not order:
-            raise HTTPException(status_code=404, detail="Order not found")
+            logger.error("Order not found for session %s / PI %s", checkout_session_id, payment_intent_id)
+            return {"status": "order not found"}
 
-        if order.status == OrderStatus.PAID:
-            return {"status": "already processed"}
+        if order.status != OrderStatus.PAID:
+            order.status = OrderStatus.PAID
+            order.paid_at = datetime.datetime.now(datetime.timezone.utc)
 
-        order.status = OrderStatus.PAID
-        order.paid_at = datetime.utcnow()
+            await session.execute(
+                delete(CartItem).where(CartItem.cart_id == order.user_id)
+            )
 
-        new_order = Order(
-            user_id=order.user_id,
-            status=OrderStatus.DRAFT,
-        )
-
-        session.add(new_order)
-        await session.commit()
-
-        print(f"Order {order.id} marked as PAID")
+            await session.commit()
+            logger.info("Order %s marked as PAID and cart cleared", order.id)
 
     return {"status": "ok"}
 
 
+
 @router.post("/create-checkout-session")
 async def create_checkout_session(
-    user: User = Depends(get_current_user),
+    user=Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """Creates a Stripe Checkout Session for the amount of the user's shopping cart"""
+    """
+    Creates a Stripe Checkout Session for the user's existing PENDING order.
+    Returns 400 if there is no pending order.
+    """
 
-    cart_service = CartService(CartRepository(session))
-    cart = await cart_service.get_cart(user.id)
+    result = await session.execute(                    # повыносить в сервисы
+        select(Order)
+        .where(Order.user_id == user.id)
+        .where(Order.status == OrderStatus.PENDING)
+        .options(selectinload(Order.items))
+    )
+    order: Order | None = result.scalar_one_or_none()
 
-    if not cart.items:
-        raise HTTPException(status_code=400, detail="Cart is empty")
+    if not order:
+        raise HTTPException(
+            status_code=400,
+            detail="No pending order found for the user."
+        )
 
-    total_amount = sum(item.price * item.quantity for item in cart.items)
-    unit_amount = int(total_amount * 100)
+    if not order.items:
+        cart_service = CartService(CartRepository(session))
+        cart = await cart_service.get_cart(user.id)
+
+        if not cart.items:
+            raise HTTPException(status_code=400, detail="Cart is empty")
+
+        order_items = [
+            OrderItem(
+                order_id=order.id,
+                product_id=item.product_id,
+                product_name=item.product_name,
+                price=item.price,
+                quantity=item.quantity,
+            )
+            for item in cart.items
+        ]
+        order.items.extend(order_items)
+
+        order.total_amount = sum(item.price * item.quantity for item in order.items)
+
+        await session.commit()
 
     checkout_session = stripe.checkout.Session.create(
         payment_method_types=["card"],
         line_items=[{
             "price_data": {
                 "currency": "eur",
-                "product_data": {"name": "Your Cart Total"},
-                "unit_amount": unit_amount,
+                "product_data": {"name": f"Order #{order.id} Total"},
+                "unit_amount": int(order.total_amount * 100),  # в центах
             },
             "quantity": 1,
         }],
         mode="payment",
-        success_url="http://localhost:8000/success",
-        cancel_url="http://localhost:8000/cancel",
+        success_url=f"http://localhost:{settings.PORT}/success",
+        cancel_url=f"http://localhost:{settings.PORT}/cancel",
         customer_email=user.email,
+        metadata={"order_id": str(order.id)},
     )
+
+    order.stripe_payment_intent_id = checkout_session.payment_intent
+    order.checkout_session_id = checkout_session.id    # убрать
+    await session.commit()
+
+    logger.info("Checkout session created for user %s: %s", user.email, checkout_session.id)
 
     return {"checkout_url": checkout_session.url}

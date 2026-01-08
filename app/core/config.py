@@ -1,8 +1,5 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field
-
-from pydantic_settings import BaseSettings
-from pydantic import Field
 from typing import Optional
 
 
@@ -20,7 +17,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
     ALLOWED_ORIGINS: str = Field(..., description="Comma-separated list of allowed CORS origins")
-
+    PORT: int
     STRIPE_PUBLISHABLE_KEY: Optional[str] = Field(
         None,
         description="Stripe publishable key for client-side payments"
