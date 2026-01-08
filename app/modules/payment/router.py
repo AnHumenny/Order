@@ -3,20 +3,18 @@ import logging
 import os
 from fastapi import APIRouter, Request, HTTPException, Depends
 import stripe
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
-from app.modules.cart.models import CartItem
 from app.modules.cart.repository import CartRepository
 from app.modules.cart.service import CartService
 from app.modules.orders.models import Order, OrderStatus, OrderItem
-from app.users.models import User
 
 router = APIRouter(
-    prefix="/payments",
+    prefix="/webhook",
     tags=["Stripe"],
 )
 
@@ -25,7 +23,7 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 logger = logging.getLogger("uvicorn")
 
 
-@router.post("/stripe/webhook")
+@router.post("/")
 async def stripe_webhook(
     request: Request,
     session: AsyncSession = Depends(get_session),
@@ -57,19 +55,27 @@ async def stripe_webhook(
         )
 
         if not order:
-            logger.error("Order not found for session %s / PI %s", checkout_session_id, payment_intent_id)
+            logger.error(
+                "Order not found for session %s / PI %s",
+                checkout_session_id,
+                payment_intent_id
+            )
             return {"status": "order not found"}
 
         if order.status != OrderStatus.PAID:
             order.status = OrderStatus.PAID
             order.paid_at = datetime.datetime.now(datetime.timezone.utc)
 
-            await session.execute(
-                delete(CartItem).where(CartItem.cart_id == order.user_id)
-            )
+            cart_service = CartService(CartRepository(session))
+            await cart_service.clear_cart_items(order.user_id)
 
             await session.commit()
-            logger.info("Order %s marked as PAID and cart cleared", order.id)
+
+            logger.info(
+                "Order %s marked as PAID and cart cleared for user %s",
+                order.id,
+                order.user_id
+            )
 
     return {"status": "ok"}
 

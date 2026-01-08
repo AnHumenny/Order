@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
 from app.modules.cart.models import Cart, CartItem
 
@@ -63,4 +63,13 @@ class CartRepository:
                 selectinload(Cart.items)
                 .selectinload(CartItem.product)
             )
+        )
+
+    async def clear_cart_items(self, user_id: int) -> None:
+        cart = await self.get_cart_with_items(user_id)
+        if not cart:
+            return
+
+        await self.session.execute(
+            delete(CartItem).where(CartItem.cart_id == cart.id)
         )

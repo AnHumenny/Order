@@ -19,7 +19,6 @@ async def add_to_cart(
     data: CartItemRead,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-   # admin = Depends(get_current_admin),
 ):
     """Add a product to the user's shopping cart.
 
@@ -75,3 +74,14 @@ async def get_cart(
         items=[CartItemRead.model_validate(item) for item in cart.items],
         total_price=total_price
     )
+
+@router.delete("/", response_model=CartRead)
+async def clear_cart(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    service = CartService(CartRepository(session))
+    await service.clear_cart_items(user.id)
+    await session.commit()
+
+    return CartRead(items=[], total_price=Decimal(0))

@@ -2,7 +2,7 @@ from decimal import Decimal
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_admin
 from app.modules.orders.models import Order, OrderStatus
 from app.users.models import User
 from app.modules.orders.schemas import OrderRead
@@ -62,7 +62,8 @@ async def checkout(
 @router.delete("/my")
 async def delete_my_pending_orders(
     user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    admin = Depends(get_current_admin),             # ордер удаляет только админ
 ):
     result = await session.execute(
         delete(Order).where(

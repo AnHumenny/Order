@@ -99,6 +99,6 @@ class CartService:
         return list(cart.items)
 
 
-    async def clear_cart(self, user_id: int):
+    async def clear_cart_items(self, user_id: int):
         """Removed all the items in the user's shopping cart"""
         await self.repo.clear_cart_items(user_id)
