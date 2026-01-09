@@ -80,6 +80,14 @@ async def clear_cart(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    """Clear the current user's shopping cart.
+
+    Removes all items from the authenticated user's cart.
+    Returns an empty cart with zero total price upon successful completion.
+
+    Authentication is required.
+    """
+
     service = CartService(CartRepository(session))
     await service.clear_cart_items(user.id)
     await session.commit()

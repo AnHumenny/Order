@@ -23,6 +23,15 @@ async def create_order(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    """Create a new order from the user's current cart.
+
+    Converts the authenticated user's shopping cart into a new order.
+    The order will contain all items currently in the cart, and the cart
+    will typically be cleared after order creation.
+
+    Authentication is required.
+    """
+
     service = OrderService(
         OrderRepository(session),
         CartRepository(session),
@@ -63,8 +72,19 @@ async def checkout(
 async def delete_my_pending_orders(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-    admin = Depends(get_current_admin),             # ордер удаляет только админ
+    admin = Depends(get_current_admin),
 ):
+    """Delete all pending orders for the current user (admin only).
+
+    Removes all orders with PENDING status belonging to the authenticated user.
+    This operation requires admin privileges.
+
+    Args:
+        user: Current authenticated user (obtained via get_current_user dependency)
+        session: Async database session
+        admin: Admin user object (obtained via get_current_admin dependency)
+    """
+
     result = await session.execute(
         delete(Order).where(
             Order.user_id == user.id,

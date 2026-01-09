@@ -5,6 +5,12 @@ from sqlalchemy.orm import Session
 
 
 def create_order(db: Session, order: Order) -> Order:
+    """Create a new order in the database.
+
+    Persists a new Order object to the database, commits the transaction,
+    and refreshes the object to get any auto-generated values (like ID).
+    """
+
     db.add(order)
     db.commit()
     db.refresh(order)
@@ -12,11 +18,21 @@ def create_order(db: Session, order: Order) -> Order:
 
 
 def add_order_items(db: Session, items: list[OrderItem]) -> None:
+    """Add multiple order items to the database in a single transaction.
+
+    Bulk inserts a list of OrderItem objects. More efficient than adding
+    items individually when creating an order with multiple products.
+    """
+
     db.add_all(items)
     db.commit()
 
 
 def get_order_by_id(db: Session, order_id: int) -> Order | None:
+    """Retrieve an order by its ID.
+
+    Fetches an Order from the database using its primary key.
+    """
     return db.get(Order, order_id)
 
 

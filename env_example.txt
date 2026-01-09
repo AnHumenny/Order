@@ -12,3 +12,5 @@ STRIPE_PUBLISHABLE_KEY= Stripe
 STRIPE_SECRET_KEY= Stripe
 STRIPE_WEBHOOK_SECRET= Stripe
 STRIPE_ENDPOINT_SECRET= Stripe
+
+PORT= 8000 (по дефолту, должен соответствовать порту, на котором запускается приложение, относится к обработке вебхука stripe)

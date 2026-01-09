@@ -18,7 +18,19 @@ class OrderService:
         self.order_repo = order_repo
         self.cart_repo = cart_repo
 
+
     async def create_from_cart(self, user_id: int) -> Order:
+        """Create an order from the user's shopping cart.
+
+        Converts the user's cart into a new order by:
+        1. Retrieving the user's cart with all items
+        2. Validating the cart is not empty
+        3. Calculating the total order amount
+        4. Creating an Order with PENDING status
+        5. Converting cart items to order items
+        6. Persisting the order to the database
+        """
+
         cart = await self.cart_repo.get_cart_with_items(user_id)
 
         if not cart or not cart.items:
@@ -59,6 +71,12 @@ def calculate_order_total(items: list[OrderItem]) -> int:
 
 
 async def get_pending_order(db: AsyncSession, user_id: int):
+    """Retrieve a pending order for a specific user.
+
+    Queries the database for an order with PENDING status belonging to
+    the given user. Returns the order if found, otherwise returns None.
+    """
+
     result = await db.execute(
         select(Order)
         .where(Order.user_id == user_id)
@@ -119,8 +137,6 @@ async def checkout_cart(db: AsyncSession, user) -> dict:
         for item in cart_items
     ]
     db.add_all(order_items)
-
-    # await cart_service.clear_cart(user.id)
 
     await db.commit()
 

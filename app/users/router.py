@@ -67,12 +67,6 @@ async def get_current_user_info(user: User = Depends(get_current_user)):
     """Get current authenticated user's information.
 
     Returns the profile of the user identified by the JWT token.
-
-    Args:
-        user: Authenticated user from dependency
-
-    Returns:
-        UserRead: Current user's information
     """
     return user
 

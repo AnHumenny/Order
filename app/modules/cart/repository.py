@@ -66,6 +66,13 @@ class CartRepository:
         )
 
     async def clear_cart_items(self, user_id: int) -> None:
+        """Clear all items from a user's shopping cart.
+
+        This method retrieves the user's cart and removes all associated cart items
+        from the database. If no cart exists for the given user, the method returns
+        without performing any operations.
+        """
+
         cart = await self.get_cart_with_items(user_id)
         if not cart:
             return
