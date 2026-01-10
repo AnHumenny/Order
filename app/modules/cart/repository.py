@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
 from app.modules.cart.models import Cart, CartItem
 
@@ -15,6 +15,7 @@ class CartRepository:
     def __init__(self, session):
         self.session = session
 
+
     async def get_or_create_cart(self, user_id: int) -> Cart:
         """Get existing cart or create a new one for the user.
 
@@ -28,9 +29,12 @@ class CartRepository:
             Cart: The user's cart (existing or newly created)
         """
 
-        cart = await self.session.scalar(
-            select(Cart).where(Cart.user_id == user_id)
+        result = await self.session.execute(
+            select(Cart)
+            .where(Cart.user_id == user_id)
+            .options(selectinload(Cart.items))
         )
+        cart = result.scalar_one_or_none()
 
         if not cart:
             cart = Cart(user_id=user_id)
@@ -59,4 +63,20 @@ class CartRepository:
                 selectinload(Cart.items)
                 .selectinload(CartItem.product)
             )
+        )
+
+    async def clear_cart_items(self, user_id: int) -> None:
+        """Clear all items from a user's shopping cart.
+
+        This method retrieves the user's cart and removes all associated cart items
+        from the database. If no cart exists for the given user, the method returns
+        without performing any operations.
+        """
+
+        cart = await self.get_cart_with_items(user_id)
+        if not cart:
+            return
+
+        await self.session.execute(
+            delete(CartItem).where(CartItem.cart_id == cart.id)
         )

@@ -1,17 +1,10 @@
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import ForeignKey, func, UniqueConstraint
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import Integer, DateTime
 from datetime import datetime
+
+from app.core.database import Base
 from app.modules.products.models import Product
-
-
-class Base(DeclarativeBase):
-    """The base class for all models.
-
-    Attributes:
-        id (int): Primary key, unique identifier for the record.
-    """
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
 
 class Cart(Base):
@@ -26,9 +19,26 @@ class Cart(Base):
     """
     __tablename__ = "carts"
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    items: Mapped[list["CartItem"]] = relationship("CartItem", cascade="all, delete-orphan")
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        unique=True
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=func.now(),
+        nullable=False
+    )
+
+    items: Mapped[list["CartItem"]] = relationship(
+        "CartItem",
+        back_populates="cart",
+        cascade="all, delete-orphan",
+        lazy="joined"
+    )
 
 
 class CartItem(Base):
@@ -44,7 +54,30 @@ class CartItem(Base):
     """
     __tablename__ = "cart_items"
 
-    cart_id: Mapped[int] = mapped_column(ForeignKey("carts.id"))
-    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    cart_id: Mapped[int] = mapped_column(
+        ForeignKey("carts.id"),
+        nullable=False
+    )
+
+    product_id: Mapped[int] = mapped_column(
+        ForeignKey("products.id"),
+        nullable=False
+    )
+
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
-    product: Mapped["Product"] = relationship("Product")
+
+    cart: Mapped["Cart"] = relationship(
+        "Cart",
+        back_populates="items"
+    )
+
+    product: Mapped[Product] = relationship(
+        Product,
+        lazy="joined"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("cart_id", "product_id", name="uq_cart_product"),
+    )

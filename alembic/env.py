@@ -1,57 +1,49 @@
+import asyncio
+import os
 from logging.config import fileConfig
-from sqlalchemy.ext.asyncio import create_async_engine
 from alembic import context
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from app.core.database import Base
-from app.core.config import settings
+import app.modules.cart.models
+import app.modules.products.models
+import app.users.models
+import app.modules.orders.models
 
 config = context.config
 fileConfig(config.config_file_name)
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set")
+
+DATABASE_URL = DATABASE_URL.replace(
+    "postgresql+asyncpg",
+    "postgresql+psycopg2"
+)
+
 target_metadata = Base.metadata
-DATABASE_URL = settings.DATABASE_URL
 
 
-def run_migrations_offline():
-    """Run migrations within the provided connection.
+def run_migrations_online():
+    engine = create_engine(DATABASE_URL)
 
-    This helper function is used in offline mode to run migrations
-    synchronously through the provided database connection.
-    """
-    url = DATABASE_URL
+    with engine.connect() as connection:
+        context.configure(connection=connection, target_metadata=target_metadata)
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
     context.configure(
-        url=url,
+        url=DATABASE_URL,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
     )
     with context.begin_transaction():
         context.run_migrations()
-
-
-def do_run_migrations(connection):
-    """Run migrations within the provided connection.
-
-    This helper function is used in online mode to run migrations
-    synchronously through the provided database connection."""
-
-    context.configure(connection=connection, target_metadata=target_metadata)
-
-
-async def run_migrations_online():
-    """Run migrations within the provided connection.
-
-    This helper function is used in oline mode to run migrations
-    synchronously through the provided database connection.
-    """
-    connectable = create_async_engine(DATABASE_URL, future=True)
-
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-
-    await connectable.dispose()
-
-if context.is_offline_mode():
-    run_migrations_offline()
 else:
-    import asyncio
-    asyncio.run(run_migrations_online())
+    run_migrations_online()

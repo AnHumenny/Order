@@ -1,9 +1,18 @@
+import enum
 from decimal import Decimal
 from datetime import datetime
-from sqlalchemy import ForeignKey, DateTime, Numeric, String
+from sqlalchemy import ForeignKey, DateTime, Numeric, String, Enum, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+
+
+class OrderStatus(str, enum.Enum):
+    DRAFT = "draft"
+    PENDING = "pending"
+    PAID = "paid"
+    CANCELED = "canceled"
+    FAILED = "failed"
 
 
 class Order(Base):
@@ -31,8 +40,19 @@ class Order(Base):
 
     status: Mapped[str] = mapped_column(
         String(50),
-        default="created",
+        default=OrderStatus.PENDING,
         nullable=False,
+    )
+
+    total_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        nullable=False,
+    )
+
+    stripe_payment_intent_id: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -45,6 +65,8 @@ class Order(Base):
         back_populates="order",
         cascade="all, delete-orphan",
     )
+
+    checkout_session_id = mapped_column(String, nullable=True, unique=True)
 
 
 class OrderItem(Base):
@@ -66,9 +88,9 @@ class OrderItem(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    order_id: Mapped[int] = mapped_column(
-        ForeignKey("orders.id"),
-        nullable=False,
+    order_id = mapped_column(
+        ForeignKey("orders.id", ondelete="CASCADE"),
+        nullable=False
     )
 
     product_id: Mapped[int] = mapped_column(nullable=False)
