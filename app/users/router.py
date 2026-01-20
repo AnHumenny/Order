@@ -54,7 +54,7 @@ async def login(
     """Authenticate user and return JWT access token."""
     result = await session.execute(select(User).where(User.email == form_data.username))
     user = result.scalar_one_or_none()
-    print("user = ", user)
+
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -69,5 +69,3 @@ async def get_current_user_info(user: User = Depends(get_current_user)):
     Returns the profile of the user identified by the JWT token.
     """
     return user
-
-
