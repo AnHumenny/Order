@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.products.models import Product
 
@@ -105,3 +105,19 @@ class ProductRepository:
             .where(Product.id == product_id)
             .values(is_active=False)
         )
+
+
+    async def delete(self, product_id: int) -> bool:
+        """Delete a product from the database by its ID.
+
+        Args:
+            product_id: ID of the product to delete
+
+        Returns:
+            bool: True if a product was deleted, False if no product with given ID exists
+        """
+
+        result = await self.session.execute(
+            delete(Product).where(Product.id == product_id)
+        )
+        return result.rowcount > 0

@@ -1,5 +1,3 @@
-from unittest import skip
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,9 +5,10 @@ from sqlalchemy.orm import selectinload
 from starlette import status
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
-from app.modules.products.schemas import ProductRead, ProductCreate
+from app.modules.products.repository import ProductRepository
+from app.modules.products.schemas import ProductRead, ProductCreate, ProductDelete
 from app.modules.products.models import Product
-
+from app.modules.products.service import ProductService
 
 router = APIRouter(
     prefix="/products",
@@ -45,18 +44,11 @@ async def create_product(
         401: Unauthorized (not admin)
     """
 
-    product_data = data.model_dump()
+    return await ProductService.create_product(
+        data=data,
+        session=session,
+    )
 
-    if 'category' in product_data:
-        del product_data['category']
-
-    product = Product(**product_data)
-
-    session.add(product)
-    await session.commit()
-
-    # Возвращаем без категории
-    return product
 
 @router.get("/", response_model=list[ProductRead])
 async def list_products(
@@ -75,21 +67,14 @@ async def list_products(
         list[ProductRead]: List of all products
     """
 
-    stmt = (
-        select(Product)
-        .options(selectinload(Product.category))
-        .offset(skip)
-        .limit(limit)
-        .order_by(Product.id)
+    return await ProductService.list_products(
+        session=session,
+        skip=skip,
+        limit=limit,
     )
 
-    result = await session.execute(stmt)
-    products = result.scalars().all()
 
-    return products
-
-
-@router.get("/{product_id}", response_model=ProductRead)
+@router.get("/{product_id}", response_model=ProductDelete)
 async def get_product(product_id: int, session: AsyncSession = Depends(get_session)):
     """Get a specific product by ID.
 
@@ -104,19 +89,42 @@ async def get_product(product_id: int, session: AsyncSession = Depends(get_sessi
         HTTPException: 404 if product not found
     """
 
-    stmt = (
-        select(Product)
-        .options(selectinload(Product.category))
-        .where(Product.id == product_id)
+    return await ProductService.get_product_by_id(
+        product_id=product_id,
+        session=session,
     )
 
-    result = await session.execute(stmt)
-    product = result.scalar_one_or_none()
+@router.delete(
+    "/{prodict_id}",
+    summary="Delete product",
+)
+async def delete_product(
+    product_id: int,
+    session: AsyncSession = Depends(get_session),
+    admin=Depends(get_current_admin),
+):
+    """Delete item by id."""
 
-    if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found"
-        )
+    service = ProductService(ProductRepository(session))
+    await service.delete_product(product_id)
+    await session.commit()
+    return {"status": "deleted"}
 
-    return product
+
+@router.get(
+    "/categories/{category_id}/products",
+    response_model=list[ProductRead],
+)
+async def list_products_by_category(
+    category_id: int,
+    skip: int = 0,
+    limit: int = 10,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get list of all items in selected category."""
+    return await ProductService.list_category_products(
+        session=session,
+        category_id=category_id,
+        skip=skip,
+        limit=limit,
+    )
