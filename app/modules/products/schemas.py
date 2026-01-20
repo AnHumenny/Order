@@ -1,5 +1,7 @@
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 from decimal import Decimal
+from app.modules.category.schemas import CategoryRead
 
 
 class ProductCreate(BaseModel):
@@ -13,6 +15,7 @@ class ProductCreate(BaseModel):
         price: Product price
     """
     name: str
+    category: str | None = None
     description: str | None = None
     price: Decimal
 
@@ -24,14 +27,16 @@ class ProductRead(BaseModel):
 
     Attributes:
         id: Product identifier
-        name: Product display name
         description: Optional detailed description
         price: Product price
     """
     id: int
+    category: Optional[CategoryRead] = None
     name: str
     description: str | None = None
     price: Decimal
+    category_id: Optional[int] = None
+
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -48,6 +53,7 @@ class ProductUpdate(BaseModel):
         is_active: New active status (if provided)
     """
     name: str | None = None
+    category: str
     description: str | None = None
     price: Decimal | None = None
     is_active: bool | None = None

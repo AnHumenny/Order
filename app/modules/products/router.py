@@ -1,6 +1,9 @@
+from unittest import skip
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from starlette import status
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
@@ -42,15 +45,25 @@ async def create_product(
         401: Unauthorized (not admin)
     """
 
-    product = Product(**data.model_dump())
+    product_data = data.model_dump()
+
+    if 'category' in product_data:
+        del product_data['category']
+
+    product = Product(**product_data)
+
     session.add(product)
     await session.commit()
-    await session.refresh(product)
+
+    # Возвращаем без категории
     return product
 
-
 @router.get("/", response_model=list[ProductRead])
-async def list_products(session: AsyncSession = Depends(get_session)):
+async def list_products(
+    session: AsyncSession = Depends(get_session),
+    skip: int = 0,
+    limit: int = 100
+):
     """List all products.
 
     Returns all products from the database. No authentication required.
@@ -62,9 +75,18 @@ async def list_products(session: AsyncSession = Depends(get_session)):
         list[ProductRead]: List of all products
     """
 
-    result = await session.execute(select(Product))
+    stmt = (
+        select(Product)
+        .options(selectinload(Product.category))
+        .offset(skip)
+        .limit(limit)
+        .order_by(Product.id)
+    )
+
+    result = await session.execute(stmt)
     products = result.scalars().all()
-    return [ProductRead.model_validate(p) for p in products]
+
+    return products
 
 
 @router.get("/{product_id}", response_model=ProductRead)
@@ -82,7 +104,19 @@ async def get_product(product_id: int, session: AsyncSession = Depends(get_sessi
         HTTPException: 404 if product not found
     """
 
-    product = await session.get(Product, product_id)
+    stmt = (
+        select(Product)
+        .options(selectinload(Product.category))
+        .where(Product.id == product_id)
+    )
+
+    result = await session.execute(stmt)
+    product = result.scalar_one_or_none()
+
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return ProductRead.model_validate(product)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+
+    return product

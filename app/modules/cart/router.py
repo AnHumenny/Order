@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal
 from app.core.database import get_session
-from app.core.dependencies import get_current_user, get_current_admin
-from app.modules.cart.schemas import CartRead, CartItemRead
+from app.core.dependencies import get_current_user
+from app.modules.cart.schemas import CartRead, CartItemRead, CartItemCreate
 from app.modules.cart.service import CartService
 from app.modules.cart.repository import CartRepository
 from app.users.models import User
@@ -16,7 +16,7 @@ router = APIRouter(
 
 @router.post("/items", response_model=CartRead)
 async def add_to_cart(
-    data: CartItemRead,
+    data: CartItemCreate,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
