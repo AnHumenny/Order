@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
 from app.core.config import settings
 from app.users.router import router as users_router
 from app.modules.category.router import router as categories_router
@@ -11,17 +13,16 @@ import stripe
 import os
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
 )
 
-origins = settings.ALLOWED_ORIGINS.split(",")
-
 app.add_middleware(
     CORSMiddleware,              # type: ignore
-    allow_origins=origins,
+    allow_origins=[frontend_url],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
