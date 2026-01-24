@@ -115,7 +115,7 @@ class ProductService:
             session: AsyncSession,
             category_id: int,
             skip: int = 0,
-            limit: int = 100,
+            limit: int = 10,
     ) -> list[Product]:
         """Get all products from selected categories."""
 
