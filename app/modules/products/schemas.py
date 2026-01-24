@@ -15,9 +15,9 @@ class ProductCreate(BaseModel):
         price: Product price
     """
     name: str
-    category: str | None = None
     description: str | None = None
     price: Decimal
+    category_id: int
 
 
 class ProductRead(BaseModel):
@@ -36,7 +36,6 @@ class ProductRead(BaseModel):
     description: str | None = None
     price: Decimal
     category_id: Optional[int] = None
-
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -57,3 +56,8 @@ class ProductUpdate(BaseModel):
     description: str | None = None
     price: Decimal | None = None
     is_active: bool | None = None
+
+
+class ProductDelete(BaseModel):
+    """Pydantic model for creating a new category."""
+    pass

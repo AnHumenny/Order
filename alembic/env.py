@@ -12,6 +12,8 @@ import app.modules.cart.models
 import app.modules.products.models
 import app.users.models
 import app.modules.orders.models
+import app.modules.category.models
+
 
 config = context.config
 fileConfig(config.config_file_name)

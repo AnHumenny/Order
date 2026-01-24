@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
@@ -18,6 +19,7 @@ router = APIRouter(
 @router.post(
     "/",
     response_model=CategoryRead,
+    status_code=status.HTTP_201_CREATED,
     summary="Create category",
 )
 async def create_category(
