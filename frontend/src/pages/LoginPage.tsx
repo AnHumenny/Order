@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { login } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import "../styles/LoginPage.css";
+import "../styles/auth/LoginPage.css";
 
 const LoginPage = () => {
   const { loginUser } = useAuth();
@@ -29,7 +29,6 @@ const LoginPage = () => {
   return (
     <div className="login-container">
       <form className="login-form" onSubmit={handleSubmit}>
-        <h2 className="login-title">Login</h2>
 
         {error && <p className="login-error">{error}</p>}
 
