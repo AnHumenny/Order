@@ -1,32 +1,55 @@
 import React, { useState } from "react";
+import { login } from "../api/auth";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import "../styles/auth/LoginPage.css";
 
 const LoginPage = () => {
+  const { loginUser } = useAuth();
+  const navigate = useNavigate();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    try {
+      const data = await login(username, password);
+
+      loginUser({ username, token: data.access_token });
+      navigate("/");
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   return (
-    <div>
-      <h2>Login</h2>
+    <div className="login-container">
+      <form className="login-form" onSubmit={handleSubmit}>
 
-      <form>
-        <div>
-          <input
-            placeholder="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </div>
+        {error && <p className="login-error">{error}</p>}
 
-        <div>
-          <input
-            type="password"
-            placeholder="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+        <input
+          className="login-input"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
 
-        <button type="submit">Login</button>
+        <input
+          className="login-input"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <button className="login-button" type="submit">
+          Login
+        </button>
       </form>
     </div>
   );
