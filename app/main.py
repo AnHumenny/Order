@@ -13,7 +13,7 @@ import stripe
 import os
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+frontend_url = os.getenv("FRONTEND_URL")
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -22,7 +22,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,              # type: ignore
-    allow_origins=[frontend_url],
+    allow_origins=frontend_url,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

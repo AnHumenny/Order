@@ -1,13 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 from starlette import status
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
 from app.modules.products.repository import ProductRepository
 from app.modules.products.schemas import ProductRead, ProductCreate, ProductDelete
-from app.modules.products.models import Product
 from app.modules.products.service import ProductService
 
 router = APIRouter(
@@ -54,7 +51,7 @@ async def create_product(
 async def list_products(
     session: AsyncSession = Depends(get_session),
     skip: int = 0,
-    limit: int = 100
+    limit: int = 20
 ):
     """List all products.
 
@@ -62,6 +59,8 @@ async def list_products(
 
     Args:
         session: Database session
+        limit: int
+        skip: int
 
     Returns:
         list[ProductRead]: List of all products
@@ -74,7 +73,7 @@ async def list_products(
     )
 
 
-@router.get("/{product_id}", response_model=ProductDelete)
+@router.get("/{product_id}", response_model=ProductRead)
 async def get_product(product_id: int, session: AsyncSession = Depends(get_session)):
     """Get a specific product by ID.
 
