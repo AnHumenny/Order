@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getProductById } from "../api/products";
+import CategoriesMenu from "../components/CategoriesMenu";
 import "../styles/products/ProductCart.css";
+import "../styles/products/CategoriesMenu.css";
 
 interface Product {
   id: number;
@@ -31,11 +33,14 @@ const ProductPage: React.FC = () => {
   }
 
   return (
-    <div className="product-page">
-      <h1>{product.name}</h1>
-      <p className="category">Category: {product.category.name}</p>
-      <p className="description">{product.description}</p>
-      <p className="price">{product.price} €</p>
+    <div className="product-page-container">
+      <CategoriesMenu />
+      <div className="product-page-content">
+        <h1>{product.name}</h1>
+        <p className="category">Category: {product.category.name}</p>
+        <p className="description">{product.description}</p>
+        <p className="price">{product.price} €</p>
+      </div>
     </div>
   );
 };
