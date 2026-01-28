@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { getProductById } from "../api/products";
 import CategoriesMenu from "../components/CategoriesMenu";
 import "../styles/products/ProductCart.css";
-import "../styles/products/CategoriesMenu.css";
+import "../styles/categories/CategoriesMenu.css";
 
 interface Product {
   id: number;

@@ -7,7 +7,7 @@ export const useLogout = () => {
 
   const logout = () => {
     logoutUser();
-    navigate("/login");
+    navigate("/");
   };
 
   return logout;
