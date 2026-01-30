@@ -1,6 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
 from app.core.config import settings
 from app.users.router import router as users_router
@@ -18,6 +17,7 @@ frontend_url = os.getenv("FRONTEND_URL")
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
+    redirect_slashes=False,
 )
 
 app.add_middleware(

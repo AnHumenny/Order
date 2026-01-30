@@ -33,3 +33,23 @@
   font-weight: 600;
   color: #111;
 }
+
+.product-page-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.product-page-content {
+  flex-grow: 1;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 768px) {
+  .product-page-container {
+    flex-direction: column;
+  }
+}

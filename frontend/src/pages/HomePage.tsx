@@ -1,27 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
+import CategoriesMenu from "../components/CategoriesMenu";
+import { getProducts } from "../api/products";
 import { useAuth } from "../context/AuthContext";
 import { useLogout } from "../hooks/useLogout";
-import { getProducts } from "../api/products";
-import "../styles/auth/AuthUser.css";
-import "../styles/products/ProductsGrid.css";
 import { truncate } from "../utils/text";
+import "../styles/products/ProductsGrid.css";
+import "../styles/auth/AuthUser.css";
 
 interface Product {
   id: number;
   name: string;
   description: string;
   price: string;
-  category: {
+  category?: {
     id: number;
     name: string;
   };
 }
 
 const HomePage: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+
   const { user } = useAuth();
   const logout = useLogout();
-  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     getProducts()
@@ -30,31 +33,52 @@ const HomePage: React.FC = () => {
   }, []);
 
   return (
-    <>
+    <div className="home-container">
       <div className="user-box">
-        <span>Hi, {user?.username}</span>
-        <button onClick={logout}>Logout</button>
+        {!user && (
+          <Link to="/login" className="login-link">
+            Авторизация
+          </Link>
+        )}
       </div>
 
-     <div className="products-grid">
-       {products.map((product) => (
-     <Link
-      key={product.id}
-      to={`/products/${product.id}`}
-      className="product-link"
-    >
-      <div className="product-card">
-        <h3>{product.name}</h3>
-        <p className="category">Category: {product.category.name}</p>
-        <p className="description">
-          {truncate(product.description, 10)}
-        </p>
-        <p className="price">{product.price} €</p>
+      {user && (
+        <div className="user-box">
+          <span>Hi, {user.username}</span>
+          <button onClick={logout}>Logout</button>
+        </div>
+      )}
+
+      <div className="content-wrapper">
+        <CategoriesMenu />
+
+        <div className="products-grid">
+          {products.map((product) => (
+            <Link
+              key={product.id}
+              to={`/products/${product.id}`}
+              className="product-link"
+            >
+              <div className="product-card">
+                <h3>{product.name}</h3>
+
+                {product.category && (
+                  <p className="category">
+                    Category: {product.category.name}
+                  </p>
+                )}
+
+                <p className="description">
+                  {truncate(product.description, 10)}
+                </p>
+
+                <p className="price">{product.price} €</p>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
-    </Link>
-  ))}
-</div>
-    </>
+    </div>
   );
 };
 

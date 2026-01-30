@@ -1,0 +1,28 @@
+.categories-menu {
+  width: 200px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+}
+
+.categories-menu h4 {
+  margin-bottom: 10px;
+}
+
+.categories-menu ul {
+  list-style: none;
+  padding: 0;
+}
+
+.categories-menu li {
+  margin-bottom: 8px;
+}
+
+.categories-menu a {
+  text-decoration: none;
+  color: #333;
+}
+
+.categories-menu a:hover {
+  color: #007bff;
+}
