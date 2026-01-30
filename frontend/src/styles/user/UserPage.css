@@ -1,0 +1,65 @@
+.page-layout {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: row;
+}
+
+.top-bar {
+  width: 80%;
+  padding: 10px 40px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  background: #f8f9fa;
+  gap: 15px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+}
+
+.login-link,
+.profile-link {
+  text-decoration: none;
+  color: #007bff;
+  font-weight: 500;
+}
+
+.user-box span {
+  margin-right: 10px;
+}
+
+.user-box button {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #007bff;
+  color: white;
+  cursor: pointer;
+}
+
+.user-box button:hover {
+  background: #0056b3;
+}
+
+.sidebar {
+  width: 220px;
+  margin-top: 60px;
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 12px;
+}
+
+.page-content {
+  flex: 1;
+  padding: 80px 40px 40px;
+}
+
+.user-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  margin-top: 20px;
+}

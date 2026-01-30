@@ -36,10 +36,10 @@ const ProductPage: React.FC = () => {
     <div className="product-page-container">
       <CategoriesMenu />
       <div className="product-page-content">
-        <h1>{product.name}</h1>
+        <h3>{product.name}</h3>
         <p className="category">Category: {product.category.name}</p>
         <p className="description">{product.description}</p>
-        <p className="price">{product.price} €</p>
+        <p className="price">{product.price} $</p>
       </div>
     </div>
   );

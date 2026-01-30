@@ -1,6 +1,7 @@
 import React, {
   createContext,
   useContext,
+  useEffect,
   useState,
   ReactNode,
 } from "react";
@@ -18,27 +19,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      const storedUser = localStorage.getItem("user");
-      return storedUser ? (JSON.parse(storedUser) as User) : null;
-    } catch (e) {
-      console.error("Failed to parse user from localStorage", e);
-      return null;
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const username = localStorage.getItem("username");
+
+    if (token && username) {
+      setUser({ username, token });
     }
-  });
+  }, []);
 
   const loginUser = (userData: User) => {
     setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("token", userData.token);
+    localStorage.setItem("username", userData.username);
   };
 
   const logoutUser = () => {
     setUser(null);
-    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
   };
 
   return (
