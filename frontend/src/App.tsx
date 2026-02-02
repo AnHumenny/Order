@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import ProductPage from "./pages/ProductPage";
+import CategoryProductsPage from "./pages/CategoryProductsPage";
 import UserPage from "./pages/UserPage";
 import CategoriesMenu from "./components/CategoriesMenu";
 // import { useAuth } from "./context/AuthContext";
@@ -14,10 +15,9 @@ const App: React.FC = () => {
       <Route path="/products/:id" element={<ProductPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/me" element={<UserPage />} />
+      <Route path="/categories/:category_id" element={<CategoryProductsPage />} />
     </Routes>
   );
 };
 
 export default App;
-
-//       <Route path="/categories/:id" element={<CategoriesPage />} />
