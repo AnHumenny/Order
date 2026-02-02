@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-
 import CategoriesMenu from "../components/CategoriesMenu";
 import { getProducts } from "../api/products";
 import { useAuth } from "../context/AuthContext";
@@ -43,11 +42,17 @@ const HomePage: React.FC = () => {
       </div>
 
       {user && (
-        <div className="user-box">
-          <span>Hi, {user.username}</span>
-          <button onClick={logout}>Logout</button>
-        </div>
-      )}
+    <div className="user-box">
+      <div>
+        <Link to="/me" className="profile-link">
+          Кабинет
+        </Link>
+        <span style={{ margin: "0 8px" }}>|</span>
+        <span>Hi, {user.username}</span>
+      </div>
+      <button onClick={logout}>Logout</button>
+    </div>
+)}
 
       <div className="content-wrapper">
         <CategoriesMenu />

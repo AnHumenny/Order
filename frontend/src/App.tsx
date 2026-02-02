@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import ProductPage from "./pages/ProductPage";
+import UserPage from "./pages/UserPage";
 import CategoriesMenu from "./components/CategoriesMenu";
 // import { useAuth } from "./context/AuthContext";
 
@@ -12,6 +13,7 @@ const App: React.FC = () => {
       <Route path="/" element={<HomePage />} />
       <Route path="/products/:id" element={<ProductPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/me" element={<UserPage />} />
     </Routes>
   );
 };

@@ -1,6 +1,6 @@
 import re
 
-from pydantic import BaseModel, EmailStr, validator, field_validator
+from pydantic import BaseModel, EmailStr, field_validator
 from datetime import datetime
 
 from pydantic_core import PydanticCustomError
@@ -89,6 +89,7 @@ class UserRead(BaseModel):
     """
     id: int
     email: EmailStr
+    username: str
     is_active: bool
     is_superuser: bool
     created_at: datetime
