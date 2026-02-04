@@ -27,39 +27,41 @@ const ProductPage: React.FC = () => {
   if (!product) return <div>Loading...</div>;
 
   return (
-    <div className="home-container">
-      {!user && (
-        <div className="user-box">
-          <Link to="/login" className="login-link">
-            Авторизация
-          </Link>
-        </div>
-      )}
-
-      {user && (
-        <div className="user-box">
-          <div>
-            <Link to="/me" className="profile-link">
-              Кабинет
-            </Link>
-            <span style={{ margin: "0 8px" }}>|</span>
-            <span>Hi, {user.username}</span>
-          </div>
-          <button onClick={logout}>Logout</button>
-        </div>
-      )}
-
-      <div className="content-wrapper">
-        <CategoriesMenu />
-
-        <div className="product-page-content">
-          <h3>{product.name}</h3>
-          <p className="category">Category: {product.category.name}</p>
-          <p className="description">{product.description}</p>
-          <p className="price">{product.price} $</p>
-        </div>
-      </div>
+   <div className="home-container">
+  {!user && (
+    <div className="user-box">
+      <Link to="/login" className="login-link">
+        Авторизация
+      </Link>
     </div>
+  )}
+
+  {user && (
+    <div className="user-box">
+      <div>
+        <Link to="/me" className="profile-link">
+          Кабинет
+        </Link>
+        <span style={{ margin: "0 8px" }}>|</span>
+        <span>Hi, {user.username}</span>
+      </div>
+      <button onClick={logout}>Logout</button>
+    </div>
+  )}
+
+  <div style={{ marginTop: "50px" }}></div>
+
+  <div className="content-wrapper">
+    <CategoriesMenu />
+
+    <div className="product-page-content">
+      <h3>{product.name}</h3>
+      <p className="category">Category: {product.category.name}</p>
+      <p className="description">{product.description}</p>
+      <p className="price">{product.price} $</p>
+    </div>
+  </div>
+</div>
   );
 };
 

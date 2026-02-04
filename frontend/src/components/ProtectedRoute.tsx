@@ -1,10 +1,8 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import type { Props } from "../api/types";
 
-interface Props {
-  children: JSX.Element;
-}
 
 const ProtectedRoute: React.FC<Props> = ({ children }) => {
   const { user } = useAuth();

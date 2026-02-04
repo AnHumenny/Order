@@ -7,17 +7,8 @@ import { useLogout } from "../hooks/useLogout";
 import { truncate } from "../utils/text";
 import "../styles/products/ProductsGrid.css";
 import "../styles/auth/AuthUser.css";
+import type { Product } from "../api/types";
 
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: string;
-  category?: {
-    id: number;
-    name: string;
-  };
-}
 
 const HomePage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
