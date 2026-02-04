@@ -8,3 +8,28 @@ export interface Product {
     name: string;
   };
 }
+
+export type Category = {
+  id: number;
+  name: string;
+};
+
+export interface User {
+  username: string;
+  token: string;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  loginUser: (user: User) => void;
+  logoutUser: () => void;
+}
+
+export interface Token {
+  access_token: string;
+  token_type: string;
+}
+
+interface Props {
+  children: JSX.Element;
+}

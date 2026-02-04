@@ -6,16 +6,8 @@ import React, {
   ReactNode,
 } from "react";
 
-interface User {
-  username: string;
-  token: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  loginUser: (user: User) => void;
-  logoutUser: () => void;
-}
+import type { User } from "../api/types";
+import type { AuthContextType } from "../api/types";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

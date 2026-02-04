@@ -5,12 +5,8 @@ import { getCurrentUser } from "../api/user";
 import { useLogout } from "../hooks/useLogout";
 import "../styles/user/UserPage.css";
 import "../styles/categories/CategoriesMenu.css";
+import type { User } from "../api/types";
 
-interface User {
-  id: number;
-  username: string;
-  email: string;
-}
 
 const UserPage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
