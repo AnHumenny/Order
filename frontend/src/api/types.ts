@@ -30,6 +30,19 @@ export interface Token {
   token_type: string;
 }
 
-interface Props {
+export interface Props {
   children: JSX.Element;
+}
+
+export interface CartItem {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export interface CartContextType {
+  cart: CartItem[];
+  addToCart: (item: CartItem) => Promise<void>;
+  fetchCart: () => Promise<void>;
 }
