@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getCategories } from "../api/categories";
-import type { Category } from "../api/categories";
 import "../styles/categories/CategoriesMenu.css";
 
 const CategoriesMenu: React.FC = () => {

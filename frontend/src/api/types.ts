@@ -31,7 +31,11 @@ export interface Token {
 }
 
 export interface Props {
-  children: JSX.Element;
+  children: ReactNode;
+}
+
+export interface State {
+  hasError: boolean;
 }
 
 export interface CartItem {

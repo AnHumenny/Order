@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../constants/api";
-import type { User } from "../api/types";
-import type { CartItem } from "../api/types";
-import type { CartContextType } from "../api/types";
+import type { User, CartItem, CartContextType, Props } from "../api/types";
 
 
 const CartContext = createContext<CartContextType>({
@@ -13,10 +11,6 @@ const CartContext = createContext<CartContextType>({
 });
 
 export const useCart = () => useContext(CartContext);
-
-interface Props {
-  children: ReactNode;
-}
 
 export const CartProvider: React.FC<Props> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
