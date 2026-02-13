@@ -94,7 +94,9 @@ async def delete_my_pending_orders(
 
     await session.commit()
 
+    deleted_count = result.rowcount if hasattr(result, 'rowcount') else 0
+
     return {
         "detail": "Pending orders deleted",
-        "deleted": result.rowcount
+        "deleted": deleted_count
     }

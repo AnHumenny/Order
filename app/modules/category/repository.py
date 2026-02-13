@@ -77,4 +77,8 @@ class CategoryRepository:
         result = await self.session.execute(
             delete(Category).where(Category.id == category_id)
         )
-        return result.rowcount > 0
+
+        if hasattr(result, 'rowcount'):
+            return result.rowcount > 0
+        return False
+
