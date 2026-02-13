@@ -120,4 +120,7 @@ class ProductRepository:
         result = await self.session.execute(
             delete(Product).where(Product.id == product_id)
         )
-        return result.rowcount > 0
+
+        if hasattr(result, 'rowcount'):
+            return result.rowcount > 0
+        return False

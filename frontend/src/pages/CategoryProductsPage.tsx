@@ -9,6 +9,7 @@ import "../styles/auth/AuthUser.css";
 import CategoriesMenu from "../components/CategoriesMenu";
 import { useAuth } from "../context/AuthContext";
 import { useLogout } from "../hooks/useLogout";
+import { useCart } from "../context/CartContext";
 
 const CategoryProductsPage: React.FC = () => {
   const { category_id } = useParams<{ category_id: string }>();
@@ -17,16 +18,20 @@ const CategoryProductsPage: React.FC = () => {
 
   const { user } = useAuth();
   const logout = useLogout();
+  const { addToCart } = useCart();
 
   useEffect(() => {
     if (!category_id) return;
 
+    setLoading(true);
     getProductsByCategory(Number(category_id))
       .then(setProducts)
       .finally(() => setLoading(false));
   }, [category_id]);
 
-  if (loading) return <p>Loading products...</p>;
+  if (loading) {
+    return <p style={{ padding: 20 }}>Loading products...</p>;
+  }
 
   return (
     <div className="home-container">
@@ -59,19 +64,32 @@ const CategoryProductsPage: React.FC = () => {
             <p>No products in this category.</p>
           ) : (
             products.map((product) => (
-              <Link
-                key={product.id}
-                to={`/products/${product.id}`}
-                className="product-link"
-              >
-                <div className="product-card">
+              <div key={product.id} className="product-card">
+                <Link
+                  to={`/products/${product.id}`}
+                  className="product-link"
+                >
                   <h3>{product.name}</h3>
                   <p className="description">
                     {truncate(product.description, 12)}
                   </p>
                   <p className="price">{product.price} €</p>
-                </div>
-              </Link>
+                </Link>
+
+                <button
+                  className="add-to-cart-btn"
+                  onClick={() =>
+                    addToCart({
+                      id: product.id,
+                      name: product.name,
+                      price: Number(product.price),
+                      quantity: 1,
+                    })
+                  }
+                >
+                  В корзину
+                </button>
+              </div>
             ))
           )}
         </div>
