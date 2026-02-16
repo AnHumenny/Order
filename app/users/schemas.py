@@ -20,6 +20,7 @@ class UserCreate(BaseModel):
         password: Plain text password (will be hashed)
     """
     email: EmailStr
+    username: str
     password: str
 
     @field_validator("password")
@@ -87,6 +88,7 @@ class UserRead(BaseModel):
         created_at: Account creation timestamp
         updated_at: Last update timestamp
     """
+
     id: int
     email: EmailStr
     username: str
