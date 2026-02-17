@@ -23,6 +23,7 @@ class CategoryRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+
     async def create(self, name: str) -> Category:
         """Create and persist a new category in the database.
 
@@ -38,7 +39,8 @@ class CategoryRepository:
         await self.session.flush()
         return category
 
-    async def get_all(self) -> list[Category]:
+
+    async def get_all(self, skip, limit) -> list[Category]:
         """Retrieve all categories from the database.
 
         Returns:
@@ -47,8 +49,12 @@ class CategoryRepository:
 
         result = await self.session.execute(
             select(Category).order_by(Category.name)
+            .offset(skip)
+            .limit(limit)
+            .order_by(Category.id)
         )
         return list(result.scalars())
+
 
     async def get_by_id(self, category_id: int) -> Category | None:
         """Retrieve a category by its unique identifier.
@@ -63,6 +69,7 @@ class CategoryRepository:
         return await self.session.scalar(
             select(Category).where(Category.id == category_id)
         )
+
 
     async def delete(self, category_id: int) -> bool:
         """Delete a category from the database by its ID.

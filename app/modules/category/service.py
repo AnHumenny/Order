@@ -23,6 +23,7 @@ class CategoryService:
     def __init__(self, repo: CategoryRepository):
         self.repo = repo
 
+
     async def create_category(self, name: str):
         """Create a new category with business validations.
 
@@ -47,7 +48,8 @@ class CategoryService:
                 detail="Category with this name already exists",
             )
 
-    async def list_categories(self):
+
+    async def list_categories(self, skip, limit):
         """Retrieve all categories from the system.
 
         Returns a complete list of all categories available in the system.
@@ -57,7 +59,8 @@ class CategoryService:
         Returns:
             list[Category]: List of all category objects
         """
-        return await self.repo.get_all()
+        return await self.repo.get_all(skip, limit)
+
 
     async def delete_category(self, category_id: int):
         """Delete a category by ID with existence validation.

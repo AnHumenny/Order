@@ -1,7 +1,5 @@
 from fastapi import HTTPException
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 from starlette import status
 from app.modules.products.models import Product
 from app.modules.products.repository import ProductRepository
@@ -13,77 +11,52 @@ class ProductService:
     def __init__(self, repo: ProductRepository):
         self.repo = repo
 
-    @staticmethod
-    async def create_product(
-        *,
-        data: ProductCreate,
-        session: AsyncSession,
-    ) -> Product:
-        """Create product."""
+
+    async def create_product(self, data: ProductCreate) -> Product:
+        """Create product with category."""
+
         product_data = data.model_dump()
         product_data.pop("category", None)
         product = Product(**product_data)
 
-        session.add(product)
-        await session.commit()
+        try:
+            return await self.repo.create_with_category(product)
 
-        await session.refresh(product)
+        except IntegrityError as e:
+            await self.repo.session.rollback()
 
-        stmt = (
-            select(Product)
-            .options(selectinload(Product.category))
-            .where(Product.id == product.id)
-        )
+            if "foreign key" in str(e).lower():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Category does not exist",
+                )
+            elif "unique constraint" in str(e).lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Product with this SKU/article already exists",
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Database integrity error",
+                )
 
-        result = await session.execute(stmt)
-        return result.scalar_one()
 
-
-    @staticmethod
-    async def list_products(
-            *,
-            session: AsyncSession,
+    async def get_list_products(
+            self,
             skip: int = 0,
             limit: int = 100,
     ) -> list[Product]:
         """Get list of all products."""
-
-        stmt = (
-            select(Product)
-            .options(selectinload(Product.category))
-            .offset(skip)
-            .limit(limit)
-            .order_by(Product.id)
-        )
-
-        result = await session.execute(stmt)
-        return list(result.scalars().all())
+        return await self.repo.get_all(skip, limit)
 
 
-    @staticmethod
     async def get_product_by_id(
-            *,
+            self,
             product_id: int,
-            session: AsyncSession,
     ) -> Product:
         """Get single product by id."""
-
-        stmt = (
-            select(Product)
-            .options(selectinload(Product.category))
-            .where(Product.id == product_id)
-        )
-
-        result = await session.execute(stmt)
-        product = result.scalar_one_or_none()
-
-        if product is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found",
-            )
-
-        return product
+        return await self.repo.get_product_by_id(product_id)
 
 
     async def delete_product(self, category_id: int):
@@ -109,24 +82,12 @@ class ProductService:
                 detail="Product not found",
             )
 
-    @staticmethod
+
     async def list_category_products(
-            *,
-            session: AsyncSession,
-            category_id: int,
-            skip: int = 0,
-            limit: int = 10,
+            self,
+            category_id,
+            skip,
+            limit
     ) -> list[Product]:
         """Get all products from selected categories."""
-
-        stmt = (
-            select(Product)
-            .options(selectinload(Product.category))
-            .where(Product.category_id == category_id)
-            .offset(skip)
-            .limit(limit)
-            .order_by(Product.id)
-        )
-
-        result = await session.execute(stmt)
-        return list(result.scalars().all())
+        return await self.repo.get_product_by_category(category_id, skip, limit)

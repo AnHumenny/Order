@@ -54,6 +54,8 @@ async def create_category(
 )
 async def list_categories(
     session: AsyncSession = Depends(get_session),
+    skip: int = 0,
+    limit: int = 10,
 ):
     """Retrieve all product categories.
 
@@ -62,13 +64,15 @@ async def list_categories(
 
     Args:
         session: Database session dependency
+        skip: int
+        limit: int
 
     Returns:
         list[CategoryRead]: List of all categories
     """
 
     service = CategoryService(CategoryRepository(session))
-    return await service.list_categories()
+    return await service.list_categories(skip, limit)
 
 
 @router.delete(
