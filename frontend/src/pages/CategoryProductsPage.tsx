@@ -7,6 +7,7 @@ import "../styles/products/ProductsGrid.css";
 import "../styles/categories/CategoriesMenu.css";
 import "../styles/auth/AuthUser.css";
 import CategoriesMenu from "../components/CategoriesMenu";
+import UserBox from "../components/UserBox";
 import { useAuth } from "../context/AuthContext";
 import { useLogout } from "../hooks/useLogout";
 import { useCart } from "../context/CartContext";
@@ -18,7 +19,7 @@ const CategoryProductsPage: React.FC = () => {
 
   const { user } = useAuth();
   const logout = useLogout();
-  const { addToCart } = useCart();
+  const { cart, addToCart } = useCart();
 
   useEffect(() => {
     if (!category_id) return;
@@ -35,26 +36,7 @@ const CategoryProductsPage: React.FC = () => {
 
   return (
     <div className="home-container">
-      {!user && (
-        <div className="user-box">
-          <Link to="/login" className="login-link">
-            Авторизация
-          </Link>
-        </div>
-      )}
-
-      {user && (
-        <div className="user-box">
-          <div>
-            <Link to="/me" className="profile-link">
-              Кабинет
-            </Link>
-            <span style={{ margin: "0 8px" }}>|</span>
-            <span>Hi, {user.username}</span>
-          </div>
-          <button onClick={logout}>Logout</button>
-        </div>
-      )}
+      <UserBox user={user} cart={cart} onLogout={logout} />
 
       <div className="content-wrapper">
         <CategoriesMenu />
