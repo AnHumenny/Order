@@ -1,5 +1,8 @@
+from fastapi import HTTPException
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+from starlette import status
 from app.modules.products.models import Product
 
 
@@ -46,7 +49,7 @@ class ProductRepository:
         )
 
 
-    async def list(self) -> list[Product]:
+    async def get_all(self, skip, limit) -> list[Product]:
         """Retrieve all active products ordered by ID.
 
         Returns:
@@ -55,25 +58,51 @@ class ProductRepository:
 
         result = await self.session.scalars(
             select(Product)
+            .options(selectinload(Product.category))
             .where(Product.is_active.is_(True))
+            .offset(skip)
+            .limit(limit)
             .order_by(Product.id)
         )
         return list(result)
 
 
-    async def create(self, product: Product) -> Product:
-        """Create a new product.
 
-        Args:
-            product: Product instance to persist
+    async def get_product_by_id(self, product_id) -> Product:
+        """Retrieve all active products ordered by ID.
 
         Returns:
-            Product: Created product with ID assigned
+            Product by id
         """
 
+        product = await self.session.scalar(
+            select(Product)
+            .options(selectinload(Product.category))
+            .where(Product.id == product_id)
+        )
+
+        if product is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Product not found",
+            )
+
+        return product
+
+
+    async def create_with_category(self, product: Product) -> Product:
+        """Create product and eagerly load category."""
         self.session.add(product)
         await self.session.flush()
-        return product
+
+        stmt = (
+            select(Product)
+            .options(selectinload(Product.category))
+            .where(Product.id == product.id)
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalar_one()
 
 
     async def update(self, product: Product) -> Product:
@@ -124,3 +153,22 @@ class ProductRepository:
         if hasattr(result, 'rowcount'):
             return result.rowcount > 0
         return False
+
+
+    async def get_product_by_category(self, category_id, skip, limit) -> list[Product]:
+        """Retrieve all active products ordered by ID.
+
+        Returns:
+            Product by id
+        """
+
+        result = await self.session.execute(
+            select(Product)
+            .options(selectinload(Product.category))
+            .where(Product.category_id == category_id)
+            .offset(skip)
+            .limit(limit)
+            .order_by(Product.id)
+        )
+
+        return list(result.scalars().all())

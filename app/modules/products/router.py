@@ -13,38 +13,21 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "/",
-    response_model=ProductRead,
-    status_code=status.HTTP_201_CREATED,
-)
-
+@router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
 async def create_product(
-    data: ProductCreate,
-    session: AsyncSession = Depends(get_session),
-    admin = Depends(get_current_admin)
+        data: ProductCreate,
+        session: AsyncSession = Depends(get_session),
+        admin=Depends(get_current_admin)
 ):
-    """Create a new product (admin only).
+    """Create product with category (only admin)."""
 
-    Creates a new product with provided data. Requires admin authentication.
+    service = ProductService(ProductRepository(session))
+    product = await service.create_product(data)
 
-    Args:
-        data: ProductCreate schema with product details
-        session: Database session
-        admin: Admin user verification
+    await session.commit()
+    await session.refresh(product, attribute_names=["category"])
 
-    Returns:
-        ProductRead: Created product
-
-    Status:
-        201: Product successfully created
-        401: Unauthorized (not admin)
-    """
-
-    return await ProductService.create_product(
-        data=data,
-        session=session,
-    )
+    return product
 
 
 @router.get("/", response_model=list[ProductRead])
@@ -66,11 +49,8 @@ async def list_products(
         list[ProductRead]: List of all products
     """
 
-    return await ProductService.list_products(
-        session=session,
-        skip=skip,
-        limit=limit,
-    )
+    service = ProductService(ProductRepository(session))
+    return await service.get_list_products(skip, limit)
 
 
 @router.get("/{product_id}", response_model=ProductRead)
@@ -88,10 +68,9 @@ async def get_product(product_id: int, session: AsyncSession = Depends(get_sessi
         HTTPException: 404 if product not found
     """
 
-    return await ProductService.get_product_by_id(
-        product_id=product_id,
-        session=session,
-    )
+    service = ProductService(ProductRepository(session))
+    return await service.get_product_by_id(product_id)
+
 
 @router.delete(
     "/{prodict_id}",
@@ -121,9 +100,6 @@ async def list_products_by_category(
     session: AsyncSession = Depends(get_session),
 ):
     """Get list of all items in selected category."""
-    return await ProductService.list_category_products(
-        session=session,
-        category_id=category_id,
-        skip=skip,
-        limit=limit,
-    )
+
+    service = ProductService(ProductRepository(session))
+    return await service.list_category_products(category_id, skip, limit)
