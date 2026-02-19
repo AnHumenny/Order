@@ -50,3 +50,13 @@ export interface CartContextType {
   addToCart: (item: CartItem) => Promise<void>;
   fetchCart: () => Promise<void>;
 }
+
+export interface UserBoxProps {
+  user: {
+    username: string;
+    id?: number;
+    email?: string;
+  } | null;
+  cart: CartItem[];
+  onLogout: () => void;
+}

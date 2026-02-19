@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getProductById } from "../api/products";
 import CategoriesMenu from "../components/CategoriesMenu";
+import UserBox from "../components/UserBox";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useLogout } from "../hooks/useLogout";
@@ -30,31 +31,7 @@ const ProductPage: React.FC = () => {
 
   return (
     <div className="home-container">
-      {!user && (
-        <div className="user-box">
-          <Link to="/login" className="login-link">
-            Авторизация
-          </Link>
-        </div>
-      )}
-
-      {user && (
-        <div className="user-box">
-          <Link to="/cart" className="cart-link">
-            Корзина ({cart.length})
-          </Link>
-
-          <div>
-            <Link to="/me" className="profile-link">
-              Кабинет
-            </Link>
-            <span style={{ margin: "0 8px" }}>|</span>
-            <span>Hi, {user.username}</span>
-          </div>
-
-          <button onClick={logout}>Logout</button>
-        </div>
-      )}
+      <UserBox user={user} cart={cart} onLogout={logout} />
 
       <div style={{ marginTop: "50px" }} />
 

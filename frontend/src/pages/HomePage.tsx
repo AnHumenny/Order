@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CategoriesMenu from "../components/CategoriesMenu";
+import UserBox from "../components/UserBox";
 import { getProducts } from "../api/products";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
@@ -26,31 +27,7 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="home-container">
-      <div className="user-box">
-        {!user && (
-          <Link to="/login" className="login-link">
-            Авторизация
-          </Link>
-        )}
-      </div>
-
-      {user && (
-        <div className="user-box">
-          <Link to="/cart" className="cart-link">
-            Корзина ({cart.length})
-          </Link>
-
-          <div>
-            <Link to="/me" className="profile-link">
-              Кабинет
-            </Link>
-            <span style={{ margin: "0 8px" }}>|</span>
-            <span>Hi, {user.username}</span>
-          </div>
-
-          <button onClick={logout}>Logout</button>
-        </div>
-      )}
+      <UserBox user={user} cart={cart} onLogout={logout} />
 
       <div className="content-wrapper">
         <CategoriesMenu />

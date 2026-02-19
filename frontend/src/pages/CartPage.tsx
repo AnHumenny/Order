@@ -4,6 +4,7 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useLogout } from "../hooks/useLogout";
 import CategoriesMenu from "../components/CategoriesMenu";
+import UserBox from "../components/UserBox";
 import "../styles/products/ProductsGrid.css";
 import "../styles/auth/AuthUser.css";
 import "../styles/categories/CategoriesMenu.css";
@@ -20,31 +21,7 @@ const CartPage: React.FC = () => {
 
   return (
     <div className="home-container">
-      {!user && (
-        <div className="user-box">
-          <Link to="/login" className="login-link">
-            Авторизация
-          </Link>
-        </div>
-      )}
-
-      {user && (
-        <div className="user-box">
-          <Link to="/" className="profile-link">
-            Главная
-          </Link>
-
-          <div>
-            <Link to="/me" className="profile-link">
-              Кабинет
-            </Link>
-            <span style={{ margin: "0 8px" }}>|</span>
-            <span>Hi, {user.username}</span>
-          </div>
-
-          <button onClick={logout}>Logout</button>
-        </div>
-      )}
+      <UserBox user={user} cart={cart} onLogout={logout} />
 
       <div style={{ marginTop: "50px" }} />
 
