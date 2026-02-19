@@ -35,6 +35,7 @@ class ProductRead(BaseModel):
     name: str
     description: str | None = None
     price: Decimal
+    is_active: bool
     category_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -51,11 +52,13 @@ class ProductUpdate(BaseModel):
         price: New price (if provided)
         is_active: New active status (if provided)
     """
-    name: str | None = None
-    category: str
-    description: str | None = None
-    price: Decimal | None = None
-    is_active: bool | None = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[Decimal] = None
+    category_id: Optional[int] = None
+    is_active: Optional[bool] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProductDelete(BaseModel):
