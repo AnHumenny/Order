@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
 from app.modules.products.repository import ProductRepository
-from app.modules.products.schemas import ProductRead, ProductCreate, ProductDelete, ProductUpdate
+from app.modules.products.schemas import ProductRead, ProductCreate, ProductUpdate, ProductFilterParams,  \
+    ProductFilter
 from app.modules.products.service import ProductService
 
 router = APIRouter(
@@ -150,3 +151,14 @@ async def update_product(
 
     service = ProductService(ProductRepository(session))
     return await service.update_product(product_id, product_update)
+
+
+@router.get("/filter/", response_model=list[ProductFilter])
+async def get_products(
+        filters: ProductFilterParams = Depends(),
+        session: AsyncSession = Depends(get_session),
+):
+    """Get products with filtering and pagination."""
+
+    service = ProductService(ProductRepository(session))
+    return await service.get_products(filters)

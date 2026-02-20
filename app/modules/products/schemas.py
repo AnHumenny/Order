@@ -64,3 +64,25 @@ class ProductUpdate(BaseModel):
 class ProductDelete(BaseModel):
     """Pydantic model for creating a new category."""
     pass
+
+
+class ProductFilterParams(BaseModel):
+    """Product filtering and pagination parameters."""
+
+    search: Optional[str] = None
+    min_price: Optional[float] = None
+    max_price: Optional[float] = None
+    skip: int = 0
+    limit: int = 100
+
+
+class ProductFilter(BaseModel):
+    """Product filter schema (response ProductFilterParams)."""
+
+    id: int
+    name: str
+    description: Optional[str] = None
+    price: float
+
+    class Config:
+        from_attributes = True

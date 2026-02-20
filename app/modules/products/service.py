@@ -1,9 +1,10 @@
+from typing import List
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from starlette import status
 from app.modules.products.models import Product
 from app.modules.products.repository import ProductRepository
-from app.modules.products.schemas import ProductCreate, ProductUpdate
+from app.modules.products.schemas import ProductCreate, ProductUpdate, ProductFilterParams
 
 
 class ProductService:
@@ -141,18 +142,11 @@ class ProductService:
                 detail="No fields to update"
             )
 
-        if 'price' in update_dict and update_dict['price'] <= 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Price must be positive"
-            )
-
         if 'name' in update_dict:
-            existing = await self.repo.get_by_name(update_dict['name'])
-            if existing and existing.id != product_id:
+            if not update_dict['name'] or not update_dict['name'].strip():
                 raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Product with this name already exists"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Product name cannot be empty"
                 )
 
         if 'category_id' in update_dict and update_dict['category_id'] is not None:
@@ -167,15 +161,28 @@ class ProductService:
             updated_product = await self.repo.update(product_id, update_dict)
             await self.repo.session.commit()
             return updated_product
+
         except IntegrityError:
             await self.repo.session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Database integrity error"
             )
+
         except Exception as e:
             await self.repo.session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Error updating product: {str(e)}"
             )
+
+    async def get_products(self, filters: ProductFilterParams) -> List[dict]:
+        """Get a list of products with filtering"""
+        products = await self.repo.get_all_with_filters(
+            search=filters.search,
+            min_price=filters.min_price,
+            max_price=filters.max_price,
+            skip=filters.skip,
+            limit=filters.limit
+        )
+        return products

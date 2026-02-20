@@ -1,4 +1,4 @@
-from typing import Any, Coroutine, Optional
+from typing import Optional, List
 from fastapi import HTTPException
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -262,3 +262,43 @@ class ProductRepository:
         )
 
         return list(result.scalars().all())
+
+
+    async def get_all_with_filters(
+            self,
+            search: Optional[str] = None,
+            min_price: Optional[float] = None,
+            max_price: Optional[float] = None,
+            skip: int = 0,
+            limit: int = 100
+    ) -> List[dict]:
+        """Return a list of products with filtering"""
+
+        query = select(Product)
+
+        if search:
+            query = query.where(
+                (Product.name.ilike(f"%{search}%")) |
+                (Product.description.ilike(f"%{search}%"))
+            )
+
+        if min_price is not None:
+            query = query.where(Product.price >= min_price)
+
+        if max_price is not None:
+            query = query.where(Product.price <= max_price)
+
+        query = query.offset(skip).limit(limit).order_by(Product.id)
+
+        result = await self.session.execute(query)
+        products = result.scalars().all()
+
+        return [
+            {
+                "id": p.id,
+                "name": p.name,
+                "description": p.description,
+                "price": p.price
+            }
+            for p in products
+        ]
