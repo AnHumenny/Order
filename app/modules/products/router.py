@@ -4,7 +4,8 @@ from starlette import status
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
 from app.modules.products.repository import ProductRepository
-from app.modules.products.schemas import ProductRead, ProductCreate, ProductDelete
+from app.modules.products.schemas import ProductRead, ProductCreate, ProductUpdate, ProductFilterParams,  \
+    ProductFilter
 from app.modules.products.service import ProductService
 
 router = APIRouter(
@@ -73,7 +74,7 @@ async def get_product(product_id: int, session: AsyncSession = Depends(get_sessi
 
 
 @router.delete(
-    "/{prodict_id}",
+    "/{product_id}",
     summary="Delete product",
 )
 async def delete_product(
@@ -87,6 +88,40 @@ async def delete_product(
     await service.delete_product(product_id)
     await session.commit()
     return {"status": "deleted"}
+
+
+@router.patch(
+    "/{product_id}/deactivate",
+    summary="Update product to deactivate",
+)
+async def product_to_deactivate(
+    product_id: int,
+    session: AsyncSession = Depends(get_session),
+    admin=Depends(get_current_admin),
+):
+    """deactivate item by id."""
+
+    service = ProductService(ProductRepository(session))
+    await service.deactivate_product(product_id)
+    await session.commit()
+    return {"status": "deactivate"}
+
+
+@router.patch(
+    "/{product_id}/activate",
+    summary="Update product to activate",
+)
+async def product_to_activate(
+    product_id: int,
+    session: AsyncSession = Depends(get_session),
+    admin=Depends(get_current_admin),
+):
+    """activate item by id."""
+
+    service = ProductService(ProductRepository(session))
+    await service.activate_product(product_id)
+    await session.commit()
+    return {"status": "activate"}
 
 
 @router.get(
@@ -103,3 +138,27 @@ async def list_products_by_category(
 
     service = ProductService(ProductRepository(session))
     return await service.list_category_products(category_id, skip, limit)
+
+
+@router.patch("/{product_id}", response_model=ProductRead)
+async def update_product(
+    product_id: int,
+    product_update: ProductUpdate,
+    session: AsyncSession = Depends(get_session),
+    admin=Depends(get_current_admin)
+):
+    """Update product information."""
+
+    service = ProductService(ProductRepository(session))
+    return await service.update_product(product_id, product_update)
+
+
+@router.get("/filter/", response_model=list[ProductFilter])
+async def get_products(
+        filters: ProductFilterParams = Depends(),
+        session: AsyncSession = Depends(get_session),
+):
+    """Get products with filtering and pagination."""
+
+    service = ProductService(ProductRepository(session))
+    return await service.get_products(filters)
