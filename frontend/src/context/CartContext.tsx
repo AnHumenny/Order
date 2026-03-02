@@ -3,11 +3,11 @@ import axios from "axios";
 import { API_URL } from "../constants/api";
 import type { User, CartItem, CartContextType, Props } from "../api/types";
 
-
 const CartContext = createContext<CartContextType>({
   cart: [],
   addToCart: async () => {},
   fetchCart: async () => {},
+  clearCart: async () => {},
 });
 
 export const useCart = () => useContext(CartContext);
@@ -86,8 +86,28 @@ export const CartProvider: React.FC<Props> = ({ children }) => {
     }
   };
 
+  const clearCart = async () => {
+    try {
+      const token = getToken();
+      if (!token) {
+        console.error("User not authenticated");
+        return;
+      }
+
+      await axios.delete(`${API_URL}/cart/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setCart([]);
+
+    } catch (err) {
+      console.error("Error clearing cart:", err);
+      throw err;
+    }
+  };
+
   return (
-    <CartContext.Provider value={{ cart, addToCart, fetchCart }}>
+    <CartContext.Provider value={{ cart, addToCart, fetchCart, clearCart }}>
       {children}
     </CartContext.Provider>
   );

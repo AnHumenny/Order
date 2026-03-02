@@ -49,6 +49,7 @@ export interface CartContextType {
   cart: CartItem[];
   addToCart: (item: CartItem) => Promise<void>;
   fetchCart: () => Promise<void>;
+  clearCart: () => Promise<void>;
 }
 
 export interface UserBoxProps {
