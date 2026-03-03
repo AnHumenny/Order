@@ -54,3 +54,8 @@ class CartRead(BaseModel):
         """Pydantic configuration."""
 
         from_attributes = True
+
+
+class CartItemUpdate(BaseModel):
+    """Schema for updating cart item quantity"""
+    quantity: int = Field(..., ge=1, description="New quantity (must be >= 1)")
