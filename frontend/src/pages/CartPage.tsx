@@ -11,12 +11,13 @@ import "../styles/categories/CategoriesMenu.css";
 import "../styles/cart/CartPage.css";
 
 const CartPage: React.FC = () => {
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, updateQuantity } = useCart();
   const { user } = useAuth();
   const logout = useLogout();
   const navigate = useNavigate();
 
   const [isClearing, setIsClearing] = useState<boolean>(false);
+  const [updatingItems, setUpdatingItems] = useState<Set<number>>(new Set());
 
   const total: number = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -45,6 +46,36 @@ const CartPage: React.FC = () => {
 
   const handleCheckout = (): void => {
     alert('Оформление заказа');
+  };
+
+  const handleIncrement = async (productId: number): Promise<void> => {
+    setUpdatingItems(prev => new Set(prev).add(productId));
+    try {
+      await updateQuantity(productId, 'increment');
+    } catch (error) {
+      alert('Ошибка при увеличении количества');
+    } finally {
+      setUpdatingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleDecrement = async (productId: number): Promise<void> => {
+    setUpdatingItems(prev => new Set(prev).add(productId));
+    try {
+      await updateQuantity(productId, 'decrement');
+    } catch (error) {
+      alert('Ошибка при уменьшении количества');
+    } finally {
+      setUpdatingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
   };
 
   return (
@@ -111,14 +142,35 @@ const CartPage: React.FC = () => {
                   {cart.map((item) => (
                     <tr key={item.id}>
                       <td>{item.name}</td>
-                      <td align="center">{item.quantity}</td>
+                      <td align="center">
+                        <div className="quantity-controls">
+                          <button
+                            onClick={() => handleDecrement(item.product_id)}
+                            disabled={updatingItems.has(item.product_id)}
+                            className="quantity-btn decrement"
+                            aria-label="Уменьшить количество"
+                          >
+                            −
+                          </button>
+                          <span className="quantity-value">
+                            {updatingItems.has(item.product_id) ? '...' : item.quantity}
+                          </span>
+                          <button
+                            onClick={() => handleIncrement(item.product_id)}
+                            disabled={updatingItems.has(item.product_id)}
+                            className="quantity-btn increment"
+                            aria-label="Увеличить количество"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </td>
                       <td align="right">{item.price} €</td>
                       <td align="right">
                         {(item.price * item.quantity).toFixed(2)} €
                       </td>
                     </tr>
                   ))}
-              {/* добавить +- item */}
                 </tbody>
               </table>
 
@@ -133,7 +185,6 @@ const CartPage: React.FC = () => {
                   onClick={handleCheckout}
                 >
                   Оформить заказ
-                  {/* доработать checkout*/}
                 </button>
               </div>
             </>

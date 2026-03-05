@@ -40,6 +40,7 @@ export interface State {
 
 export interface CartItem {
   id: number;
+  product_id: number;
   name: string;
   price: number;
   quantity: number;
@@ -50,6 +51,7 @@ export interface CartContextType {
   addToCart: (item: CartItem) => Promise<void>;
   fetchCart: () => Promise<void>;
   clearCart: () => Promise<void>;
+  updateQuantity: (productId: number, action: 'increment' | 'decrement') => Promise<void>;
 }
 
 export interface UserBoxProps {

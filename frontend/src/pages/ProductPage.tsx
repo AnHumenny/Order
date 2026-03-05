@@ -56,6 +56,7 @@ const ProductPage: React.FC = () => {
               onClick={() =>
                 addToCart({
                   id: product.id,
+                  product_id: product.id,
                   name: product.name,
                   price: Number(product.price),
                   quantity: 1,
