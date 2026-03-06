@@ -71,7 +71,7 @@
 
 .go-to-shop-btn {
   padding: 10px 20px;
-  background-color: #007bff;
+  background-color: #99e4db;
   color: white;
   border: none;
   border-radius: 4px;
@@ -82,7 +82,7 @@
 }
 
 .go-to-shop-btn:hover {
-  background-color: #0069d9;
+  background-color: #5bb3a8;
 }
 
 .cart-total-section {

@@ -51,7 +51,7 @@ class CategoryRepository:
             select(Category).order_by(Category.name)
             .offset(skip)
             .limit(limit)
-            .order_by(Category.id)
+            .order_by(Category.id.desc())
         )
         return list(result.scalars())
 
