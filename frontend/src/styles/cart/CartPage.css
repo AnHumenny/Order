@@ -71,7 +71,7 @@
 
 .go-to-shop-btn {
   padding: 10px 20px;
-  background-color: #007bff;
+  background-color: #99e4db;
   color: white;
   border: none;
   border-radius: 4px;
@@ -82,7 +82,7 @@
 }
 
 .go-to-shop-btn:hover {
-  background-color: #0069d9;
+  background-color: #5bb3a8;
 }
 
 .cart-total-section {
@@ -117,4 +117,50 @@
 
 .checkout-btn:active {
   transform: scale(0.98);
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.quantity-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ddd;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.quantity-btn:hover:not(:disabled) {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.quantity-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quantity-btn.decrement {
+  color: #dc3545;
+}
+
+.quantity-btn.increment {
+  color: #28a745;
+}
+
+.quantity-value {
+  min-width: 30px;
+  text-align: center;
+  font-weight: 500;
 }

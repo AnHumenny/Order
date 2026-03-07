@@ -8,6 +8,7 @@ const CartContext = createContext<CartContextType>({
   addToCart: async () => {},
   fetchCart: async () => {},
   clearCart: async () => {},
+  updateQuantity: async () => {},
 });
 
 export const useCart = () => useContext(CartContext);
@@ -29,7 +30,8 @@ export const CartProvider: React.FC<Props> = ({ children }) => {
       if (response.data.items) {
         setCart(
           response.data.items.map((i: any) => ({
-            id: i.product_id,
+            id: i.id,
+            product_id: i.product_id,
             name: i.product_name,
             price: Number(i.price),
             quantity: i.quantity,
@@ -55,14 +57,15 @@ export const CartProvider: React.FC<Props> = ({ children }) => {
 
       const response = await axios.post(
         `${API_URL}/cart/items`,
-        { product_id: item.id, quantity: item.quantity },
+        { product_id: item.product_id, quantity: item.quantity },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.data.items) {
         setCart(
           response.data.items.map((i: any) => ({
-            id: i.product_id,
+            id: i.id,
+            product_id: i.product_id,
             name: i.product_name,
             price: Number(i.price),
             quantity: i.quantity,
@@ -70,15 +73,15 @@ export const CartProvider: React.FC<Props> = ({ children }) => {
         );
       } else {
         setCart((prev) => {
-          const exist = prev.find((i) => i.id === item.id);
+          const exist = prev.find((i) => i.product_id === item.product_id);
           if (exist) {
             return prev.map((i) =>
-              i.id === item.id
+              i.product_id === item.product_id
                 ? { ...i, quantity: i.quantity + item.quantity }
                 : i
             );
           }
-          return [...prev, item];
+          return [...prev, { ...item, id: Date.now() }];
         });
       }
     } catch (err) {
@@ -106,8 +109,53 @@ export const CartProvider: React.FC<Props> = ({ children }) => {
     }
   };
 
+  const updateQuantity = async (productId: number, action: 'increment' | 'decrement') => {
+    try {
+      const token = getToken();
+      if (!token) {
+        console.error("User not authenticated");
+        return;
+      }
+
+      const url = action === 'increment'
+        ? `${API_URL}/cart/product/${productId}/increment`
+        : `${API_URL}/cart/product/${productId}/decrement`;
+
+      await axios.post(url, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setCart((prevCart) => {
+        return prevCart.map((item) => {
+          if (item.product_id === productId) {
+            const newQuantity = action === 'increment'
+              ? item.quantity + 1
+              : item.quantity - 1;
+
+            if (newQuantity <= 0) {
+              return null;
+            }
+
+            return { ...item, quantity: newQuantity };
+          }
+          return item;
+        }).filter(Boolean) as CartItem[];
+      });
+
+    } catch (err) {
+      console.error(`Error ${action}ing item quantity:`, err);
+      throw err;
+    }
+  };
+
   return (
-    <CartContext.Provider value={{ cart, addToCart, fetchCart, clearCart }}>
+    <CartContext.Provider value={{
+      cart,
+      addToCart,
+      fetchCart,
+      clearCart,
+      updateQuantity
+    }}>
       {children}
     </CartContext.Provider>
   );

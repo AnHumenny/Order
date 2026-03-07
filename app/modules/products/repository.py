@@ -67,7 +67,7 @@ class ProductRepository:
             .where(Product.is_active.is_(True))
             .offset(skip)
             .limit(limit)
-            .order_by(Product.id)
+            .order_by(Product.id.desc())
         )
         return list(result)
 
@@ -258,7 +258,7 @@ class ProductRepository:
             .where(Product.category_id == category_id)
             .offset(skip)
             .limit(limit)
-            .order_by(Product.id)
+            .order_by(Product.id.desc())
         )
 
         return list(result.scalars().all())
@@ -288,7 +288,7 @@ class ProductRepository:
         if max_price is not None:
             query = query.where(Product.price <= max_price)
 
-        query = query.offset(skip).limit(limit).order_by(Product.id)
+        query = query.offset(skip).limit(limit).order_by(Product.id.desc())
 
         result = await self.session.execute(query)
         products = result.scalars().all()
