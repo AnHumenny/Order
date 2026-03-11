@@ -63,3 +63,19 @@ export interface UserBoxProps {
   cart: CartItem[];
   onLogout: () => void;
 }
+
+interface OrderData {
+  items: Array<{
+    product_id: number;
+    quantity: number;
+    price: number;
+  }>;
+  total_amount: number;
+}
+
+interface CheckoutSessionResponse {
+  id: string;
+  url: string;
+  session_id?: string;
+  checkout_url?: string;
+}

@@ -151,8 +151,8 @@ async def create_checkout_session_service(user, session: AsyncSession) -> dict:
             "quantity": 1,
         }],
         mode="payment",
-        success_url=f"http://localhost:{settings.PORT}/success",
-        cancel_url=f"http://localhost:{settings.PORT}/cancel",
+        success_url=f"http://localhost:{settings.PORT}/webhook/success",
+        cancel_url=f"http://localhost:{settings.PORT}/webhook/cancel",
         customer_email=user.email,
         metadata={"order_id": str(order.id)},
     )

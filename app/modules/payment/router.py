@@ -3,8 +3,11 @@ import os
 from fastapi import APIRouter, Request, HTTPException, Depends
 import stripe
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import RedirectResponse
+
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.config import settings
 from app.modules.payment.service import handle_stripe_webhook, create_checkout_session_service
 
 router = APIRouter(
@@ -56,3 +59,26 @@ async def create_checkout_session(
     Authentication is required.
     """
     return await create_checkout_session_service(user, session)
+
+
+def get_frontend_url() -> str:
+    if hasattr(settings, 'FRONTEND_URL') and settings.FRONTEND_URL:
+        if isinstance(settings.FRONTEND_URL, list) and len(settings.FRONTEND_URL) > 0:
+            return settings.FRONTEND_URL[0].rstrip('/')
+        elif isinstance(settings.FRONTEND_URL, str):
+            return settings.FRONTEND_URL.rstrip('/')
+    return f"{settings.BASIC_URL}"
+
+
+@router.get("/success")
+async def payment_success(request: Request):
+    frontend_base = get_frontend_url()
+    frontend_url = f"{frontend_base}/success"
+    return RedirectResponse(url=frontend_url)
+
+
+@router.get("/cancel")
+async def payment_cancel(request: Request):
+    frontend_base = get_frontend_url()
+    frontend_url = f"{frontend_base}/cancel"
+    return RedirectResponse(url=frontend_url)

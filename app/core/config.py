@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     DATABASE_URL: str = Field(..., description="Database URL")
     frontend_url: str = "http://localhost:5173"
+    BASIC_URL: str = Field(default="http://localhost:5173", description="Basic URL for frontend")   # костыль
     SECRET_KEY: str = Field(..., description="Secret key for JWT signing")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
