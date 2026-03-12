@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import "../styles/cart/CartPage.css";
 
 const Success: React.FC = () => {
   const navigate = useNavigate();
@@ -7,42 +8,26 @@ const Success: React.FC = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       navigate('/');
-    }, 3000);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [navigate]);
 
   return (
-    <div style={{
-      textAlign: 'center',
-      padding: '50px',
-      maxWidth: '600px',
-      margin: '0 auto'
-    }}>
-      <div style={{ fontSize: '80px', marginBottom: '20px' }}>✅</div>
-      <h1 style={{ color: '#2e7d32', marginBottom: '20px' }}>
+    <div className="payment-status-container">
+      <div className="payment-status-icon">✅</div>
+      <h4 className="payment-status-title success">
         Оплата прошла успешно!
-      </h1>
-      <p style={{ fontSize: '18px', marginBottom: '30px', color: '#555' }}>
+      </h4>
+      <p className="payment-status-message">
         Спасибо за покупку! Ваш заказ оформлен.
       </p>
-      <p style={{ color: '#777', marginBottom: '30px' }}>
-        Вы будете перенаправлены на главную через 3 секунды...
+      <p className="payment-status-timer">
+        Вы будете перенаправлены на главную через 5 секунд...
       </p>
       <button
         onClick={() => navigate('/')}
-        style={{
-          padding: '12px 30px',
-          fontSize: '16px',
-          backgroundColor: '#4CAF50',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          transition: 'background-color 0.3s'
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#45a049'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4CAF50'}
+        className="payment-status-btn payment-status-btn-primary"
       >
         Вернуться на главную
       </button>

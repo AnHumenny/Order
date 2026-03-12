@@ -61,24 +61,17 @@ async def create_checkout_session(
     return await create_checkout_session_service(user, session)
 
 
-def get_frontend_url() -> str:
-    if hasattr(settings, 'FRONTEND_URL') and settings.FRONTEND_URL:
-        if isinstance(settings.FRONTEND_URL, list) and len(settings.FRONTEND_URL) > 0:
-            return settings.FRONTEND_URL[0].rstrip('/')
-        elif isinstance(settings.FRONTEND_URL, str):
-            return settings.FRONTEND_URL.rstrip('/')
-    return f"{settings.BASIC_URL}"
-
-
 @router.get("/success")
 async def payment_success(request: Request):
-    frontend_base = get_frontend_url()
-    frontend_url = f"{frontend_base}/success"
+    """Endpoint for successful payment. Redirects to the frontend"""
+
+    frontend_url = settings.get_frontend_success_url()
     return RedirectResponse(url=frontend_url)
 
 
 @router.get("/cancel")
 async def payment_cancel(request: Request):
-    frontend_base = get_frontend_url()
-    frontend_url = f"{frontend_base}/cancel"
+    """Endpoint for payment cancellation. Redirects to the frontend """
+
+    frontend_url = settings.get_frontend_cancel_url()
     return RedirectResponse(url=frontend_url)

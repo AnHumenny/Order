@@ -1,55 +1,40 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import "../styles/cart/CartPage.css";
 
 const Cancel: React.FC = () => {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate('/cart');
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   return (
-    <div style={{
-      textAlign: 'center',
-      padding: '50px',
-      maxWidth: '600px',
-      margin: '0 auto'
-    }}>
-      <div style={{ fontSize: '80px', marginBottom: '20px' }}>❌</div>
-      <h1 style={{ color: '#c62828', marginBottom: '20px' }}>
+    <div className="payment-status-container">
+      <div className="payment-status-icon">❌</div>
+      <h4 className="payment-status-title cancel">
         Оплата отменена
-      </h1>
-      <p style={{ fontSize: '18px', marginBottom: '30px', color: '#555' }}>
+      </h4>
+      <p className="payment-status-message">
         Вы можете продолжить покупки и оформить заказ позже.
       </p>
-      <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+      <p className="payment-status-timer">
+        Возврат в корзину через 5 секунд...
+      </p>
+      <div className="payment-status-buttons">
         <button
           onClick={() => navigate('/cart')}
-          style={{
-            padding: '12px 30px',
-            fontSize: '16px',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1976D2'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}
+          className="payment-status-btn payment-status-btn-secondary"
         >
           Вернуться в корзину
         </button>
         <button
           onClick={() => navigate('/')}
-          style={{
-            padding: '12px 30px',
-            fontSize: '16px',
-            backgroundColor: '#757575',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#616161'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#757575'}
+          className="payment-status-btn payment-status-btn-tertiary"
         >
           На главную
         </button>
