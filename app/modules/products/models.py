@@ -1,6 +1,5 @@
 from decimal import Decimal
 from typing import Optional, TYPE_CHECKING
-
 from sqlalchemy import String, Numeric, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
@@ -10,18 +9,8 @@ if TYPE_CHECKING:
 
 
 class Product(Base):
-    """Product model representing items available for purchase.
+    """Product model representing items available for purchase."""
 
-    Stores product information including pricing and availability status.
-    Products can be added to carts and purchased in orders.
-
-    Attributes:
-        id: Unique product identifier
-        name: Product display name
-        description: Detailed product description
-        price: Current price (decimal with 2 places)
-        is_active: Whether product is available for purchase
-    """
     __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -60,5 +49,4 @@ class Product(Base):
 
 
     def __repr__(self) -> str:
-        """String representation for debugging and logging."""
         return f"<Product id={self.id} name={self.name}>"

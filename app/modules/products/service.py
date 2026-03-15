@@ -2,19 +2,29 @@ from typing import List
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from starlette import status
+from app.modules.category.repository import CategoryRepository
 from app.modules.products.models import Product
 from app.modules.products.repository import ProductRepository
 from app.modules.products.schemas import ProductCreate, ProductUpdate, ProductFilterParams
 
 
 class ProductService:
+    """Service layer for product business logic with category hierarchy support."""
 
-    def __init__(self, repo: ProductRepository):
+    def __init__(self, repo: ProductRepository, category_repo: CategoryRepository):
         self.repo = repo
+        self.category_repo = category_repo
 
 
     async def create_product(self, data: ProductCreate) -> Product:
-        """Create product with category."""
+        """Create product with category validation."""
+
+        category = await self.category_repo.get_by_id(data.category_id)
+        if not category:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Category with id {data.category_id} does not exist"
+            )
 
         product_data = data.model_dump()
         product_data.pop("category", None)
@@ -47,9 +57,10 @@ class ProductService:
             self,
             skip: int = 0,
             limit: int = 100,
+            include_inactive: bool = False
     ) -> list[Product]:
         """Get list of all products."""
-        return await self.repo.get_all(skip, limit)
+        return await self.repo.get_all(skip, limit, include_inactive)
 
 
     async def get_product_by_id(
@@ -61,20 +72,7 @@ class ProductService:
 
 
     async def delete_product(self, product_id: int):
-        """Delete a product by ID with existence and usage validation.
-
-        Args:
-            product_id: ID of the product to delete
-
-        Returns:
-            None
-
-        Raises:
-            HTTPException:
-                404 Not Found if the product doesn't exist
-                409 Conflict if the product is in orders/carts
-        """
-
+        """Delete a product by ID with existence and usage validation."""
         can_delete = await self.repo.can_delete_product(product_id)
         if not can_delete:
             raise HTTPException(
@@ -91,8 +89,7 @@ class ProductService:
 
 
     async def deactivate_product(self, product_id: int):
-        """deactivate a category by ID with existence validation."""
-
+        """Deactivate a product by ID."""
         deactivate = await self.repo.deactivate(product_id)
 
         if not deactivate:
@@ -103,8 +100,7 @@ class ProductService:
 
 
     async def activate_product(self, product_id: int):
-        """activate a category by ID with existence validation."""
-
+        """Activate a product by ID."""
         activate = await self.repo.activate(product_id)
 
         if not activate:
@@ -116,12 +112,35 @@ class ProductService:
 
     async def list_category_products(
             self,
-            category_id,
-            skip,
-            limit
+            category_id: int,
+            skip: int = 0,
+            limit: int = 100,
+            include_subcategories: bool = False
     ) -> list[Product]:
-        """Get all products from selected categories."""
-        return await self.repo.get_product_by_category(category_id, skip, limit)
+        """Get all products from selected categories.
+
+        Args:
+            category_id: ID of the category
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            include_subcategories: If True, include products from all subcategories
+
+        Returns:
+            list[Product]: List of products
+        """
+
+        category = await self.category_repo.get_by_id(category_id)
+        if not category:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Category with id {category_id} not found"
+            )
+
+        if include_subcategories:
+            category_ids = await self.category_repo.get_category_tree_ids(category_id)
+            return await self.repo.get_products_by_categories(category_ids, skip, limit)
+        else:
+            return await self.repo.get_product_by_category(category_id, skip, limit)
 
 
     async def update_product(self, product_id: int, update_data: ProductUpdate) -> Product:
@@ -150,8 +169,8 @@ class ProductService:
                 )
 
         if 'category_id' in update_dict and update_dict['category_id'] is not None:
-            category_exists = await self.repo.check_category_exists(update_dict['category_id'])
-            if not category_exists:
+            category = await self.category_repo.get_by_id(update_dict['category_id'])
+            if not category:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Category with id {update_dict['category_id']} does not exist"
@@ -176,13 +195,84 @@ class ProductService:
                 detail=f"Error updating product: {str(e)}"
             )
 
+
     async def get_products(self, filters: ProductFilterParams) -> List[dict]:
-        """Get a list of products with filtering"""
+        """Get a list of products with filtering.
+
+        Supports filtering by category with subcategories option.
+        """
+        category_ids = None
+
+        if filters.category_id:
+            if filters.include_subcategories:
+                category_ids = await self.category_repo.get_category_tree_ids(filters.category_id)
+            else:
+                category_ids = [filters.category_id]
+
         products = await self.repo.get_all_with_filters(
             search=filters.search,
             min_price=filters.min_price,
             max_price=filters.max_price,
+            category_ids=category_ids,
+            is_active=filters.is_active,
             skip=filters.skip,
             limit=filters.limit
         )
         return products
+
+
+    async def get_products_by_category_tree(
+            self,
+            category_ids: List[int],
+            skip: int = 0,
+            limit: int = 100
+    ) -> list[Product]:
+        """Get products from multiple categories."""
+        return await self.repo.get_products_by_categories(category_ids, skip, limit)
+
+
+    async def get_products_count_by_category(
+            self,
+            category_id: int,
+            include_subcategories: bool = False
+    ) -> int:
+        """Get count of products in a category.
+
+        Args:
+            category_id: ID of the category
+            include_subcategories: If True, include products from all subcategories
+
+        Returns:
+            int: Number of products
+        """
+
+        category = await self.category_repo.get_by_id(category_id)
+        if not category:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Category with id {category_id} not found"
+            )
+
+        if include_subcategories:
+            category_ids = await self.category_repo.get_category_tree_ids(category_id)
+            return await self.repo.count_products_by_categories(category_ids)
+        else:
+            return await self.repo.count_products_by_category(category_id)
+
+
+    async def get_products_with_category_path(self, product_id: int) -> dict:
+        """Get product with full category path."""
+        product = await self.get_product_by_id(product_id)
+
+        if product.category_id:
+            category_path = await self.category_repo.get_category_path(product.category_id)
+            path_string = " > ".join([c.name for c in category_path]) if category_path else None
+        else:
+            category_path = []
+            path_string = None
+
+        return {
+            "product": product,
+            "category_path": category_path,
+            "category_path_string": path_string
+        }

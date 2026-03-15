@@ -1,12 +1,10 @@
 from decimal import Decimal
-
 from fastapi import HTTPException
-from sqlalchemy import select
 from starlette import status
-
 from app.modules.cart.schemas import CartRead, CartItemRead
-from app.modules.cart.models import CartItem
 from app.modules.products.models import Product
+from sqlalchemy import select
+from app.modules.cart.models import CartItem
 
 
 class CartService:
@@ -22,22 +20,7 @@ class CartService:
     def __init__(self, repo):
         self.repo = repo
 
-
     async def add_item(self, user_id: int, data):
-        """Add a product item to the user's shopping cart.
-
-        Retrieves the product from the database, gets or creates the user's cart,
-        and adds the product as a cart item. If the product already exists in the cart,
-        increments its quantity instead of creating a duplicate entry.
-
-        Args:
-            user_id: ID of the user who owns the cart
-            data: Object containing product details (must include product_id and quantity)
-
-        Returns:
-            None: The method modifies the cart in place and returns nothing
-        """
-
         product = await self.repo.session.scalar(
             select(Product).where(Product.id == data.product_id)
         )
@@ -50,19 +33,27 @@ class CartService:
 
         cart = await self.repo.get_or_create_cart(user_id)
 
-        for item in cart.items:
-            if item.product_id == product.id:
-                item.quantity += data.quantity
-                return
+        stmt = select(CartItem).where(CartItem.cart_id == cart.id)
+        result = await self.repo.session.scalars(stmt)
+        items_list = result.all()
 
-        cart.items.append(
-            CartItem(
+        existing_item = None
+        for item in items_list:
+            if item.product_id == product.id:
+                existing_item = item
+                break
+
+        if existing_item:
+            existing_item.quantity += data.quantity
+        else:
+            new_item = CartItem(
                 cart_id=cart.id,
                 product_id=product.id,
                 quantity=data.quantity,
-       #         price=product.price,
             )
-        )
+            self.repo.session.add(new_item)
+
+        await self.repo.session.commit()
 
 
     async def get_cart(self, user_id: int) -> CartRead:
