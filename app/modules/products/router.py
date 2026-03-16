@@ -1,8 +1,11 @@
+from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
+from app.modules.category.models import Category
 from app.modules.products.repository import ProductRepository
 from app.modules.category.repository import CategoryRepository
 from app.modules.products.schemas import (
@@ -20,167 +23,132 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
-async def create_product(
-        data: ProductCreate,
-        session: AsyncSession = Depends(get_session),
-        admin=Depends(get_current_admin)
-):
-    """Create product with category (only admin)."""
-
-    service = ProductService(
-        ProductRepository(session),
-        CategoryRepository(session)
-    )
-    product = await service.create_product(data)
-
-    await session.commit()
-    await session.refresh(product, attribute_names=["category"])
-
-    return product
-
-
-@router.get("/", response_model=list[ProductRead])
-async def list_products(
-        session: AsyncSession = Depends(get_session),
+@router.get("/search", response_model=List[ProductFilter])
+async def search_products(
+        name: str = Query(..., min_length=2, max_length=100),
         skip: int = Query(0, ge=0),
         limit: int = Query(20, ge=1, le=100),
-        include_inactive: bool = Query(False, description="Include inactive products")
-):
-    """List all products.
-
-    Returns all products from the database. No authentication required.
-
-    Args:
-        session: Database session
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        include_inactive: Whether to include inactive products
-
-    Returns:
-        list[ProductRead]: List of all products
-    """
-
-    service = ProductService(
-        ProductRepository(session),
-        CategoryRepository(session)
-    )
-    return await service.get_list_products(skip, limit, include_inactive)
-
-
-@router.get("/{product_id}", response_model=ProductRead)
-async def get_product(
-        product_id: int,
+        only_active: bool = Query(True),
         session: AsyncSession = Depends(get_session)
 ):
-    """Get a specific product by ID.
+    """Search for products by name."""
 
-    Args:
-        product_id: ID of the product to retrieve
-        session: Database session
+    service = ProductService(
+        ProductRepository(session),
+        CategoryRepository(session)
+    )
+    products = await service.search_products_by_name(
+        name=name,
+        skip=skip,
+        limit=limit,
+        only_active=only_active
+    )
+    return products
 
-    Returns:
-        ProductRead: Requested product
 
-    Raises:
-        HTTPException: 404 if product not found
+@router.get("/search/advanced", response_model=List[ProductFilter])
+async def search_products_advanced(
+        search: str = Query(..., min_length=2, description="Поисковый запрос"),
+        min_price: Optional[float] = Query(None, gt=0, description="Минимальная цена"),
+        max_price: Optional[float] = Query(None, gt=0, description="Максимальная цена"),
+        category_name: Optional[str] = Query(None, description="Название категории для поиска"),
+        include_subcategories: bool = Query(False, description="Включая подкатегории"),
+        skip: int = Query(0, ge=0, description="Сколько пропустить"),
+        limit: int = Query(20, ge=1, le=100, description="Сколько вернуть"),
+        session: AsyncSession = Depends(get_session)
+):
+    """Advanced product search with filtering.
+
+    - **search**: Search by product name and description
+    - **min_price**: Minimum price
+    - **max_price**: Maximum price
+    - **category_name**: Search by category name
+    - **include_subcategories**: Include products from subcategories
+    - **skip**: Pagination (how many to skip)
+    - **limit**: Pagination (how many to return)
     """
 
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
     )
-    return await service.get_product_by_id(product_id)
+
+    category_id = None
+    if category_name:
+        result = await session.execute(
+            select(Category.id).where(Category.name.ilike(f"%{category_name}%"))
+        )
+        category_id = result.scalar_one_or_none()
+
+        if category_id is None:
+            return []
+
+    filters = ProductFilterParams(
+        search=search,
+        min_price=min_price,
+        max_price=max_price,
+        category_id=category_id,
+        include_subcategories=include_subcategories,
+        skip=skip,
+        limit=limit,
+        is_active=True
+    )
+
+    products = await service.search_products_advanced(filters)
+    return products
 
 
-@router.delete(
-    "/{product_id}",
-    summary="Delete product",
-)
-async def delete_product(
-        product_id: int,
-        session: AsyncSession = Depends(get_session),
-        admin=Depends(get_current_admin),
+@router.get("/search/with-count")
+async def search_products_with_count(
+        name: str = Query(..., min_length=2),
+        skip: int = Query(0, ge=0),
+        limit: int = Query(20, ge=1, le=100),
+        only_active: bool = Query(True),
+        session: AsyncSession = Depends(get_session)
 ):
-    """Delete item by id."""
+    """Search with counting quantity."""
 
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
     )
-    await service.delete_product(product_id)
-    await session.commit()
-    return {"status": "deleted"}
+    products, total = await service.search_products_with_count(
+        name=name,
+        skip=skip,
+        limit=limit,
+        only_active=only_active
+    )
+    return {
+        "items": products,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "has_more": (skip + limit) < total
+    }
 
 
-@router.patch(
-    "/{product_id}/deactivate",
-    summary="Update product to deactivate",
-)
-async def product_to_deactivate(
-        product_id: int,
+@router.get("/filter/", response_model=list[ProductFilter])
+async def get_products(
+        filters: ProductFilterParams = Depends(),
         session: AsyncSession = Depends(get_session),
-        admin=Depends(get_current_admin),
 ):
-    """deactivate item by id."""
-
+    """Get products with filtering and pagination."""
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
     )
-    await service.deactivate_product(product_id)
-    await session.commit()
-    return {"status": "deactivate"}
+    return await service.get_products(filters)
 
 
-@router.patch(
-    "/{product_id}/activate",
-    summary="Update product to activate",
-)
-async def product_to_activate(
-        product_id: int,
-        session: AsyncSession = Depends(get_session),
-        admin=Depends(get_current_admin),
-):
-    """activate item by id."""
-
-    service = ProductService(
-        ProductRepository(session),
-        CategoryRepository(session)
-    )
-    await service.activate_product(product_id)
-    await session.commit()
-    return {"status": "activate"}
-
-
-@router.get(
-    "/by-category/{category_id}",
-    response_model=list[ProductRead],
-    summary="Get products by category",
-)
+@router.get("/by-category/{category_id}", response_model=list[ProductRead])
 async def list_products_by_category(
         category_id: int,
         skip: int = Query(0, ge=0),
         limit: int = Query(10, ge=1, le=100),
-        include_subcategories: bool = Query(
-            False,
-            description="Include products from all subcategories"
-        ),
+        include_subcategories: bool = Query(False),
         session: AsyncSession = Depends(get_session),
 ):
-    """Get list of all products in selected category.
-
-    Args:
-        category_id: ID of the category
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        include_subcategories: If True, include products from all subcategories
-        session: Database session
-
-    Returns:
-        list[ProductRead]: List of products in the category
-    """
-
+    """Get list of all products in selected category."""
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -193,29 +161,13 @@ async def list_products_by_category(
     )
 
 
-@router.get(
-    "/by-category/{category_id}/count",
-    summary="Get products count in category",
-)
+@router.get("/by-category/{category_id}/count")
 async def count_products_by_category(
         category_id: int,
-        include_subcategories: bool = Query(
-            False,
-            description="Include products from all subcategories"
-        ),
+        include_subcategories: bool = Query(False),
         session: AsyncSession = Depends(get_session),
 ):
-    """Get count of products in a category.
-
-    Args:
-        category_id: ID of the category
-        include_subcategories: If True, include products from subcategories
-        session: Database session
-
-    Returns:
-        dict: Category ID and products count
-    """
-
+    """Get count of products in a category."""
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -224,12 +176,104 @@ async def count_products_by_category(
         category_id,
         include_subcategories
     )
-
     return {
         "category_id": category_id,
         "products_count": count,
         "include_subcategories": include_subcategories
     }
+
+
+@router.get("/{product_id}", response_model=ProductRead)
+async def get_product(
+        product_id: int,
+        session: AsyncSession = Depends(get_session)
+):
+    """Get a specific product by ID."""
+    service = ProductService(
+        ProductRepository(session),
+        CategoryRepository(session)
+    )
+    return await service.get_product_by_id(product_id)
+
+
+@router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
+async def create_product(
+        data: ProductCreate,
+        session: AsyncSession = Depends(get_session),
+        admin=Depends(get_current_admin)
+):
+    """Create product with category (only admin)."""
+    service = ProductService(
+        ProductRepository(session),
+        CategoryRepository(session)
+    )
+    product = await service.create_product(data)
+    await session.commit()
+    await session.refresh(product, attribute_names=["category"])
+    return product
+
+
+@router.get("/", response_model=list[ProductRead])
+async def list_products(
+        session: AsyncSession = Depends(get_session),
+        skip: int = Query(0, ge=0),
+        limit: int = Query(20, ge=1, le=100),
+        include_inactive: bool = Query(False)
+):
+    """List all products."""
+    service = ProductService(
+        ProductRepository(session),
+        CategoryRepository(session)
+    )
+    return await service.get_list_products(skip, limit, include_inactive)
+
+
+@router.delete("/{product_id}", summary="Delete product")
+async def delete_product(
+        product_id: int,
+        session: AsyncSession = Depends(get_session),
+        admin=Depends(get_current_admin),
+):
+    """Delete item by id."""
+    service = ProductService(
+        ProductRepository(session),
+        CategoryRepository(session)
+    )
+    await service.delete_product(product_id)
+    await session.commit()
+    return {"status": "deleted"}
+
+
+@router.patch("/{product_id}/deactivate", summary="Update product to deactivate")
+async def product_to_deactivate(
+        product_id: int,
+        session: AsyncSession = Depends(get_session),
+        admin=Depends(get_current_admin),
+):
+    """deactivate item by id."""
+    service = ProductService(
+        ProductRepository(session),
+        CategoryRepository(session)
+    )
+    await service.deactivate_product(product_id)
+    await session.commit()
+    return {"status": "deactivate"}
+
+
+@router.patch("/{product_id}/activate", summary="Update product to activate")
+async def product_to_activate(
+        product_id: int,
+        session: AsyncSession = Depends(get_session),
+        admin=Depends(get_current_admin),
+):
+    """activate item by id."""
+    service = ProductService(
+        ProductRepository(session),
+        CategoryRepository(session)
+    )
+    await service.activate_product(product_id)
+    await session.commit()
+    return {"status": "activate"}
 
 
 @router.patch("/{product_id}", response_model=ProductRead)
@@ -240,29 +284,8 @@ async def update_product(
         admin=Depends(get_current_admin)
 ):
     """Update product information."""
-
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
     )
     return await service.update_product(product_id, product_update)
-
-
-@router.get("/filter/", response_model=list[ProductFilter])
-async def get_products(
-        filters: ProductFilterParams = Depends(),
-        session: AsyncSession = Depends(get_session),
-):
-    """Get products with filtering and pagination.
-
-    Supports filtering by:
-    - search (name or description)
-    - min_price / max_price
-    - category_id (with optional include_subcategories)
-    """
-
-    service = ProductService(
-        ProductRepository(session),
-        CategoryRepository(session)
-    )
-    return await service.get_products(filters)
