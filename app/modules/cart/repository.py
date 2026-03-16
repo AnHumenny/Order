@@ -29,12 +29,12 @@ class CartRepository:
             Cart: The user's cart (existing or newly created)
         """
 
-        result = await self.session.execute(
+        stmt = (
             select(Cart)
             .where(Cart.user_id == user_id)
             .options(selectinload(Cart.items))
         )
-        cart = result.scalar_one_or_none()
+        cart = await self.session.scalar(stmt)
 
         if not cart:
             cart = Cart(user_id=user_id)

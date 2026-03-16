@@ -1,6 +1,6 @@
 from typing import Optional, List
 from fastapi import HTTPException
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from starlette import status
@@ -19,9 +19,9 @@ class ProductRepository:
     Args:
         session: SQLAlchemy async database session
     """
+
     def __init__(self, session: AsyncSession):
         self.session = session
-
 
     async def get(self, product_id: int) -> Product | None:
         """Retrieve any product by ID, regardless of active status.
@@ -34,7 +34,6 @@ class ProductRepository:
         """
         return await self.session.get(Product, product_id)
 
-
     async def get_active(self, product_id: int) -> Product | None:
         """Retrieve only active (available) product by ID.
 
@@ -44,7 +43,6 @@ class ProductRepository:
         Returns:
             Product | None: Active product if found, None otherwise
         """
-
         return await self.session.scalar(
             select(Product)
             .where(
@@ -53,32 +51,47 @@ class ProductRepository:
             )
         )
 
+    async def get_all(
+            self,
+            skip: int = 0,
+            limit: int = 100,
+            include_inactive: bool = False
+    ) -> list[Product]:
+        """Retrieve products with optional inactive inclusion.
 
-    async def get_all(self, skip, limit) -> list[Product]:
-        """Retrieve all active products ordered by ID.
+        Args:
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            include_inactive: If True, include inactive products
 
         Returns:
-            list[Product]: List of active products
+            list[Product]: List of products
         """
+        query = select(Product).options(selectinload(Product.category))
+
+        if not include_inactive:
+            query = query.where(Product.is_active.is_(True))
 
         result = await self.session.scalars(
-            select(Product)
-            .options(selectinload(Product.category))
-            .where(Product.is_active.is_(True))
+            query
             .offset(skip)
             .limit(limit)
             .order_by(Product.id.desc())
         )
         return list(result)
 
+    async def get_product_by_id(self, product_id: int) -> Product:
+        """Retrieve product by ID with category loaded.
 
-    async def get_product_by_id(self, product_id) -> Product:
-        """Retrieve all active products ordered by ID.
+        Args:
+            product_id: ID of the product to retrieve
 
         Returns:
-            Product by id
-        """
+            Product: Product by id
 
+        Raises:
+            HTTPException: 404 if product not found
+        """
         product = await self.session.scalar(
             select(Product)
             .options(selectinload(Product.category))
@@ -93,7 +106,6 @@ class ProductRepository:
 
         return product
 
-
     async def create_with_category(self, product: Product) -> Product:
         """Create product and eagerly load category."""
         self.session.add(product)
@@ -107,7 +119,6 @@ class ProductRepository:
 
         result = await self.session.execute(stmt)
         return result.scalar_one()
-
 
     async def deactivate(self, product_id: int) -> bool:
         """Deactivate (soft delete) a product.
@@ -128,20 +139,13 @@ class ProductRepository:
         await self.session.commit()
         updated_count = len(result.fetchall())
 
-        if updated_count == 0:
-            return False
-
-        return True
-
+        return updated_count > 0
 
     async def activate(self, product_id: int) -> bool:
-        """Deactivate (soft delete) a product.
-
-        Sets is_active=False instead of hard deletion to preserve
-        historical data in orders.
+        """Activate a product.
 
         Args:
-            product_id: ID of the product to deactivate
+            product_id: ID of the product to activate
         """
         result = await self.session.execute(
             update(Product)
@@ -153,36 +157,26 @@ class ProductRepository:
         await self.session.commit()
         updated_count = len(result.fetchall())
 
-        if updated_count == 0:
-            return False
-
-        return True
-
+        return updated_count > 0
 
     async def get_by_id(self, product_id: int) -> Optional[Product]:
         """Get product by ID."""
         return await self.session.get(Product, product_id)
 
-
     async def get_by_name(self, name: str) -> Optional[Product]:
         """Get product by name."""
-
         query = select(Product).where(Product.name == name)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
-
     async def check_category_exists(self, category_id: int) -> bool:
         """Check if category exists."""
-
         query = select(Category).where(Category.id == category_id)
         result = await self.session.execute(query)
         return result.first() is not None
 
-
     async def update(self, product_id: int, update_data: dict) -> Product:
         """Update product and return with category loaded."""
-
         await self.session.execute(
             update(Product)
             .where(Product.id == product_id)
@@ -200,7 +194,6 @@ class ProductRepository:
 
         return product
 
-
     async def delete(self, product_id: int) -> bool:
         """Delete a product from the database by its ID.
 
@@ -208,28 +201,25 @@ class ProductRepository:
             product_id: ID of the product to delete
 
         Returns:
-            bool: True if a product was deleted, False if no product with given ID exists
+            bool: True if a product was deleted, False otherwise
         """
 
-        check_item =  await self.session.execute(
-            select(Product.is_active).where(Product.id == product_id)
-        )
-
-        if check_item is not False:
+        product = await self.session.get(Product, product_id)
+        if not product or product.is_active:
             return False
 
         result = await self.session.execute(
             delete(Product).where(Product.id == product_id)
         )
 
+        await self.session.commit()
+
         if hasattr(result, 'rowcount'):
             return result.rowcount > 0
         return False
 
-
     async def can_delete_product(self, product_id: int) -> bool:
         """Check if product can be deleted (not in orders/carts)."""
-
         order_check = await self.session.execute(
             select(OrderItem).where(OrderItem.product_id == product_id).limit(1)
         )
@@ -245,23 +235,95 @@ class ProductRepository:
         return True
 
 
-    async def get_product_by_category(self, category_id, skip, limit) -> list[Product]:
-        """Retrieve all active products ordered by ID.
+    async def get_product_by_category(
+            self,
+            category_id: int,
+            skip: int = 0,
+            limit: int = 100
+    ) -> list[Product]:
+        """Retrieve products from a specific category.
+
+        Args:
+            category_id: ID of the category
+            skip: Number of records to skip
+            limit: Maximum number of records to return
 
         Returns:
-            Product by id
+            list[Product]: List of products in the category
         """
-
         result = await self.session.execute(
             select(Product)
             .options(selectinload(Product.category))
             .where(Product.category_id == category_id)
+            .where(Product.is_active.is_(True))
             .offset(skip)
             .limit(limit)
             .order_by(Product.id.desc())
         )
-
         return list(result.scalars().all())
+
+
+    async def get_products_by_categories(
+            self,
+            category_ids: List[int],
+            skip: int = 0,
+            limit: int = 100
+    ) -> list[Product]:
+        """Retrieve products from multiple categories.
+
+        Args:
+            category_ids: List of category IDs
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+
+        Returns:
+            list[Product]: List of products from all specified categories
+        """
+        result = await self.session.execute(
+            select(Product)
+            .options(selectinload(Product.category))
+            .where(Product.category_id.in_(category_ids))
+            .where(Product.is_active.is_(True))
+            .offset(skip)
+            .limit(limit)
+            .order_by(Product.id.desc())
+        )
+        return list(result.scalars().all())
+
+    async def count_products_by_category(self, category_id: int) -> int:
+        """Count active products in a specific category.
+
+        Args:
+            category_id: ID of the category
+
+        Returns:
+            int: Number of products
+        """
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(Product)
+            .where(Product.category_id == category_id)
+            .where(Product.is_active.is_(True))
+        )
+        return result.scalar() or 0
+
+
+    async def count_products_by_categories(self, category_ids: List[int]) -> int:
+        """Count active products in multiple categories.
+
+        Args:
+            category_ids: List of category IDs
+
+        Returns:
+            int: Number of products
+        """
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(Product)
+            .where(Product.category_id.in_(category_ids))
+            .where(Product.is_active.is_(True))
+        )
+        return result.scalar() or 0
 
 
     async def get_all_with_filters(
@@ -269,12 +331,29 @@ class ProductRepository:
             search: Optional[str] = None,
             min_price: Optional[float] = None,
             max_price: Optional[float] = None,
+            category_ids: Optional[List[int]] = None,
+            is_active: Optional[bool] = True,
             skip: int = 0,
             limit: int = 100
     ) -> List[dict]:
-        """Return a list of products with filtering"""
+        """Return a list of products with filtering.
 
-        query = select(Product)
+        Args:
+            search: Search in name and description
+            min_price: Minimum price filter
+            max_price: Maximum price filter
+            category_ids: List of category IDs to filter by
+            is_active: Filter by active status
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+
+        Returns:
+            List[dict]: List of filtered products
+        """
+        query = select(Product).options(selectinload(Product.category))
+
+        if is_active is not None:
+            query = query.where(Product.is_active == is_active)
 
         if search:
             query = query.where(
@@ -288,6 +367,9 @@ class ProductRepository:
         if max_price is not None:
             query = query.where(Product.price <= max_price)
 
+        if category_ids:
+            query = query.where(Product.category_id.in_(category_ids))
+
         query = query.offset(skip).limit(limit).order_by(Product.id.desc())
 
         result = await self.session.execute(query)
@@ -298,7 +380,80 @@ class ProductRepository:
                 "id": p.id,
                 "name": p.name,
                 "description": p.description,
-                "price": p.price
+                "price": float(p.price) if p.price else None,
+                "category_id": p.category_id,
+                "category_name": p.category.name if p.category else None,
+                "category_path": self._get_category_path_string(p.category) if p.category else None,
+                "is_active": p.is_active
             }
             for p in products
         ]
+
+
+    async def get_products_with_category_details(
+            self,
+            skip: int = 0,
+            limit: int = 100,
+            include_inactive: bool = False
+    ) -> List[dict]:
+        """Get products with full category hierarchy details.
+
+        Args:
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            include_inactive: Whether to include inactive products
+
+        Returns:
+            List[dict]: Products with enriched category information
+        """
+        query = select(Product).options(
+            selectinload(Product.category)
+            .selectinload(Category.parent)
+        )
+
+        if not include_inactive:
+            query = query.where(Product.is_active.is_(True))
+
+        query = query.offset(skip).limit(limit).order_by(Product.id.desc())
+
+        result = await self.session.execute(query)
+        products = result.scalars().all()
+
+        return [
+            {
+                "id": p.id,
+                "name": p.name,
+                "description": p.description,
+                "price": float(p.price) if p.price else None,
+                "category": {
+                    "id": p.category.id,
+                    "name": p.category.name,
+                    "parent_id": p.category.parent_id,
+                    "parent_name": p.category.parent.name if p.category.parent else None,
+                    "level": self._get_category_level(p.category)
+                } if p.category else None,
+                "is_active": p.is_active
+            }
+            for p in products
+        ]
+
+
+    def _get_category_level(self, category: Category, current_level: int = 0) -> int:
+        """Calculate category level in hierarchy."""
+        if not category.parent:
+            return current_level
+        return self._get_category_level(category.parent, current_level + 1)
+
+
+    @staticmethod
+    def _get_category_path_string(category: Category) -> str:
+        """Build category path string."""
+        if not category:
+            return ""
+
+        path_parts = []
+        current = category
+        while current:
+            path_parts.append(current.name)
+            current = current.parent
+        return " > ".join(reversed(path_parts))
