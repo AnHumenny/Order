@@ -1,6 +1,6 @@
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from fastapi import HTTPException
-from sqlalchemy import select, update, delete, func
+from sqlalchemy import select, update, delete, func, Result, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from starlette import status
@@ -325,7 +325,6 @@ class ProductRepository:
         )
         return result.scalar() or 0
 
-
     async def get_all_with_filters(
             self,
             search: Optional[str] = None,
@@ -336,21 +335,11 @@ class ProductRepository:
             skip: int = 0,
             limit: int = 100
     ) -> List[dict]:
-        """Return a list of products with filtering.
+        """Return a list of products with filtering."""
 
-        Args:
-            search: Search in name and description
-            min_price: Minimum price filter
-            max_price: Maximum price filter
-            category_ids: List of category IDs to filter by
-            is_active: Filter by active status
-            skip: Number of records to skip
-            limit: Maximum number of records to return
-
-        Returns:
-            List[dict]: List of filtered products
-        """
-        query = select(Product).options(selectinload(Product.category))
+        query = select(Product).options(
+            selectinload(Product.category).selectinload(Category.parent)
+        )
 
         if is_active is not None:
             query = query.where(Product.is_active == is_active)
@@ -457,3 +446,104 @@ class ProductRepository:
             path_parts.append(current.name)
             current = current.parent
         return " > ".join(reversed(path_parts))
+
+
+    async def search_by_name(
+            self,
+            name: str,
+            skip: int = 0,
+            limit: int = 20,
+            only_active: bool = True
+    ) -> List[Product]:
+        """Search products by name (case-insensitive partial match)."""
+
+        query = select(Product).where(
+            Product.name.ilike(f"%{name}%")
+        )
+
+        if only_active:
+            query = query.where(Product.is_active == True)
+
+        query = query.offset(skip).limit(limit)
+
+        result = await self.session.execute(query)
+        products = result.scalars().all()
+
+        return list(products)
+
+
+    async def search_by_name_with_count(
+            self,
+            name: str,
+            skip: int = 0,
+            limit: int = 20,
+            only_active: bool = True
+    ) -> tuple[List[Product], int]:
+        """Search products by name and return total count for pagination."""
+
+        base_query = select(Product).where(
+            Product.name.ilike(f"%{name}%")
+        )
+
+        if only_active:
+            base_query = base_query.where(Product.is_active == True)
+
+        count_query = select(func.count()).select_from(Product).where(
+            Product.name.ilike(f"%{name}%")
+        )
+
+        if only_active:
+            count_query = count_query.where(Product.is_active == True)
+
+        total = await self.session.scalar(count_query) or 0
+
+        query = base_query.offset(skip).limit(limit)
+        result: Result = await self.session.execute(query)
+        products_seq = result.scalars().all()
+
+        return list(products_seq), total if total is not None else 0
+
+
+    async def get_all_with_filters_and_count(
+            self,
+            search: Optional[str] = None,
+            min_price: Optional[float] = None,
+            max_price: Optional[float] = None,
+            category_ids: Optional[List[int]] = None,
+            is_active: Optional[bool] = None,
+            skip: int = 0,
+            limit: int = 100
+    ) -> Tuple[List[Product], int]:
+        """Get products with filters and return total count."""
+
+        query = select(Product).options(selectinload(Product.category))
+
+        if search:
+            query = query.where(
+                or_(
+                    Product.name.ilike(f"%{search}%"),
+                    Product.description.ilike(f"%{search}%")
+                )
+            )
+
+        if min_price is not None:
+            query = query.where(Product.price >= min_price)
+
+        if max_price is not None:
+            query = query.where(Product.price <= max_price)
+
+        if category_ids:
+            query = query.where(Product.category_id.in_(category_ids))
+
+        if is_active is not None:
+            query = query.where(Product.is_active == is_active)
+
+        count_query = select(func.count()).select_from(query.subquery())
+        total = await self.session.scalar(count_query) or 0
+
+        result = await self.session.execute(
+            query.offset(skip).limit(limit)
+        )
+        products = result.scalars().all()
+
+        return list(products), total

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from starlette import status
@@ -276,3 +276,137 @@ class ProductService:
             "category_path": category_path,
             "category_path_string": path_string
         }
+
+    async def search_products_by_name(
+            self,
+            name: str,
+            skip: int = 0,
+            limit: int = 20,
+            only_active: bool = True
+    ) -> List[Product]:
+        """Search products by name with validation."""
+
+        if not name or len(name.strip()) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Search query must be at least 2 characters long"
+            )
+
+        return await self.repo.search_by_name(
+            name=name.strip(),
+            skip=skip,
+            limit=limit,
+            only_active=only_active
+        )
+
+
+    async def search_products_with_count(
+            self,
+            name: str,
+            skip: int = 0,
+            limit: int = 20,
+            only_active: bool = True
+    ) -> Tuple[List[Product], int]:
+        """Search products and return total count."""
+
+        if not name or len(name.strip()) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Search query must be at least 2 characters long"
+            )
+
+        return await self.repo.search_by_name_with_count(
+            name=name.strip(),
+            skip=skip,
+            limit=limit,
+            only_active=only_active
+        )
+
+
+    async def search_products_advanced(
+            self,
+            filters: ProductFilterParams
+    ) -> list[dict]:
+        """Advanced product search using filters.
+
+        Supports:
+            - Search by title and description (search)
+            - Filtering by price (min_price, max_price)
+            - Filtering by category with subcategories (category_id, include_subcategories)
+            - Filtering by activity (is_active)
+            - Pagination (skip, limit)
+        """
+
+        if filters.search and len(filters.search.strip()) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Search query must be at least 2 characters long"
+            )
+
+        if filters.min_price and filters.max_price:
+            if filters.min_price > filters.max_price:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="min_price cannot be greater than max_price"
+                )
+
+        category_ids = None
+        if filters.category_id:
+            if filters.include_subcategories:
+                category_ids = await self.category_repo.get_category_tree_ids(filters.category_id)
+                if not category_ids:
+                    category_ids = [filters.category_id]
+            else:
+                category_ids = [filters.category_id]
+
+        products = await self.repo.get_all_with_filters(
+            search=filters.search,
+            min_price=filters.min_price,
+            max_price=filters.max_price,
+            category_ids=category_ids,
+            is_active=filters.is_active,
+            skip=filters.skip,
+            limit=filters.limit
+        )
+
+        return products
+
+    async def search_products_advanced_with_count(
+            self,
+            filters: ProductFilterParams
+    ) -> Tuple[List[Product], int]:
+        """Advanced product search with total quantity calculation."""
+
+        if filters.search and len(filters.search.strip()) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Search query must be at least 2 characters long"
+            )
+
+        if filters.min_price and filters.max_price:
+            if filters.min_price > filters.max_price:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="min_price cannot be greater than max_price"
+                )
+
+        category_ids = None
+        if filters.category_id:
+            if filters.include_subcategories:
+                category_ids = await self.category_repo.get_category_tree_ids(filters.category_id)
+                if not category_ids:
+                    category_ids = [filters.category_id]
+            else:
+                category_ids = [filters.category_id]
+
+        products, total = await self.repo.get_all_with_filters_and_count(
+            search=filters.search,
+            min_price=filters.min_price,
+            max_price=filters.max_price,
+            category_ids=category_ids,
+            is_active=filters.is_active,
+            skip=filters.skip,
+            limit=filters.limit
+        )
+
+        return products, total
