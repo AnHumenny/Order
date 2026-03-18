@@ -8,6 +8,7 @@ from app.modules.products.router import router as products_router
 from app.modules.cart.router import router as cart_router
 from app.modules.orders.router import router as orders_router
 from app.modules.payment.router import router as payment_router
+from app.modules.analytics.router import router as analytics_router
 import stripe
 import os
 
@@ -33,4 +34,5 @@ app.include_router(categories_router, tags=["Category"])
 app.include_router(products_router, tags=["Products"])
 app.include_router(cart_router, tags=["Cart"])
 app.include_router(orders_router, tags=["Orders"])
+app.include_router(analytics_router)
 app.include_router(payment_router, tags=["Stripe"])
