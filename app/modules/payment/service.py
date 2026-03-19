@@ -1,17 +1,15 @@
-import datetime
-import logging
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 import stripe
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.modules.cart.repository import CartRepository
 from app.modules.cart.service import CartService
 from app.modules.orders.models import Order, OrderStatus, OrderItem
-
-logger = logging.getLogger(__name__)
+from app.modules.products.models import Product
 
 
 async def handle_stripe_webhook(event: dict, session: AsyncSession) -> dict:
@@ -29,7 +27,7 @@ async def handle_stripe_webhook(event: dict, session: AsyncSession) -> dict:
             - {"status": "ignored"}: For non-checkout events
             - {"status": "order not found"}: If order cannot be located
             - {"status": "already paid"}: If order is already in PAID status
-            - {"status": "ok"}: If order successfully updated to PAID
+            - {"status": "ok"}: If order successfully updated to PAID status
 
     Raises:
         SQLAlchemyError: If database operation fail
@@ -38,107 +36,109 @@ async def handle_stripe_webhook(event: dict, session: AsyncSession) -> dict:
     event_type = event["type"]
     data = event["data"]["object"]
 
-    logger.info("Stripe event: %s", event_type)
+    if event_type == "checkout.session.completed":
+        order_id = data["metadata"].get("order_id")
 
-    if event_type != "checkout.session.completed":
-        return {"status": "ignored"}
+        order = await session.get(Order, int(order_id))
 
-    payment_intent_id = data.get("payment_intent")
-    checkout_session_id = data.get("id")
+        if not order:
+            return {"status": "order not found"}
 
-    order = await session.scalar(
-        select(Order).where(
-            (Order.checkout_session_id == checkout_session_id) |
-            (Order.stripe_payment_intent_id == payment_intent_id)
-        )
-    )
+        if order.status == OrderStatus.PAID:
+            return {"status": "already paid"}
 
-    if not order:
-        logger.error(
-            "Order not found for session %s / PI %s",
-            checkout_session_id,
-            payment_intent_id
-        )
-        return {"status": "order not found"}
+        order.status = OrderStatus.PAID
+        order.stripe_payment_intent_id = data.get("payment_intent")
+        order.paid_at = datetime.now(timezone.utc)
 
-    if order.status == OrderStatus.PAID:
-        return {"status": "already paid"}
+        cart_service = CartService(CartRepository(session))
+        await cart_service.clear_cart_items(order.user_id)
 
-    order.stripe_payment_intent_id = payment_intent_id
-    order.status = OrderStatus.PAID
-    order.paid_at = datetime.datetime.now(datetime.timezone.utc)
+        await session.commit()
 
-    cart_service = CartService(CartRepository(session))
-    await cart_service.clear_cart_items(order.user_id)
+        return {"status": "ok"}
 
-    session.add(order)
-    await session.commit()
+    elif event_type == "checkout.session.expired":
+        order_id = data["metadata"].get("order_id")
 
-    logger.info(
-        "Order %s marked as PAID, PI set, and cart cleared for user %s",
-        order.id,
-        order.user_id
-    )
+        order = await session.get(Order, int(order_id))
+        if order:
+            order.status = OrderStatus.EXPIRED
+            await session.commit()
 
-    return {"status": "ok"}
+    return {"status": "ignored"}
 
 
 async def create_checkout_session_service(user, session: AsyncSession) -> dict:
-    """Create a Stripe Checkout Session for user's pending order.
+    """Create a Stripe Checkout Session for the user's current order/cart.
 
-    Retrieves or creates a pending order for the user, converts cart items
-    to order items if needed, and creates a Stripe Checkout Session for payment.
-
-    Args:
-        user: Authenticated user object
-        session: Async database session
-
-    Returns:
-        dict: Contains Stripe Checkout Session URL:
-            - checkout_url: URL to redirect user for payment
-
-    Raises:
-        HTTPException 400: If no pending order exists
-        HTTPException 400: If cart is empty when creating order items
-        HTTPException 500: If Stripe API or database operation fails
+    Prices are always taken from the latest Product data to reflect updates.
+    PENDING orders have an expires_at field; expired orders are ignored.
     """
 
+    now = datetime.now(timezone.utc)
     result = await session.execute(
         select(Order)
         .where(Order.user_id == user.id)
         .where(Order.status == OrderStatus.PENDING)
+        .where(
+            or_(
+                Order.expires_at == None,
+                Order.expires_at > now
+            )
+        )
         .options(selectinload(Order.items))
     )
     order: Order | None = result.scalar_one_or_none()
 
     if not order:
-        raise HTTPException(400, "No pending order found for the user.")
-
-    if not order.items:
-        cart_service = CartService(CartRepository(session))
-        cart = await cart_service.get_cart(user.id)
-
-        if not cart.items:
-            raise HTTPException(400, "Cart is empty")
-
-        order_items = [
-            OrderItem(
-                order_id=order.id,
-                product_id=item.product_id,
-                product_name=item.product_name,
-                price=item.price,
-                quantity=item.quantity,
-            )
-            for item in cart.items
-        ]
-
-        order.items.extend(order_items)
-        order.total_amount = sum(
-            (item.price * item.quantity for item in cart.items), Decimal("0.00")
+        order = Order(
+            user_id=user.id,
+            status=OrderStatus.PENDING,
+            total_amount=Decimal("0.00"),
+            expires_at=now + timedelta(minutes=10),
         )
-
         session.add(order)
         await session.commit()
+    else:
+        order.expires_at = now + timedelta(minutes=10)
+        order.checkout_session_id = None
+        order.items.clear()
+        order.total_amount = Decimal("0.00")
+
+    cart_service = CartService(CartRepository(session))
+    cart = await cart_service.get_cart(user.id)
+
+    if not cart.items:
+        raise HTTPException(400, "Cart is empty")
+
+    order_items = []
+    total_amount = Decimal("0.00")
+
+    for item in cart.items:
+        product = await session.get(Product, item.product_id)
+        if not product:
+            raise HTTPException(400, f"Product {item.product_id} not found")
+
+        price = product.price
+        quantity = item.quantity
+
+        order_items.append(
+            OrderItem(
+                order_id=order.id,
+                product_id=product.id,
+                product_name=product.name,
+                price=price,
+                quantity=quantity,
+            )
+        )
+        total_amount += price * quantity
+
+    order.items.extend(order_items)
+    order.total_amount = total_amount
+
+    session.add(order)
+    await session.commit()
 
     checkout_session = stripe.checkout.Session.create(
         payment_method_types=["card"],
@@ -151,21 +151,14 @@ async def create_checkout_session_service(user, session: AsyncSession) -> dict:
             "quantity": 1,
         }],
         mode="payment",
-        success_url=f"http://localhost:{settings.PORT}/webhook/success",
-        cancel_url=f"http://localhost:{settings.PORT}/webhook/cancel",
+        success_url=f"{settings.REDIRECT_URL}:{settings.PORT}/webhook/success?order_id={order.id}",
+        cancel_url=f"{settings.REDIRECT_URL}:{settings.PORT}/webhook/cancel?order_id={order.id}",
         customer_email=user.email,
         metadata={"order_id": str(order.id)},
     )
 
     order.checkout_session_id = checkout_session.id
-
     session.add(order)
     await session.commit()
-
-    logger.info(
-        "Checkout session created for user %s: %s",
-        user.email,
-        checkout_session.id
-    )
 
     return {"checkout_url": checkout_session.url}

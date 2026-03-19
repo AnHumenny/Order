@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field
-from typing import Optional, Union, List
+from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -13,11 +13,14 @@ class Settings(BaseSettings):
     APP_NAME: str = "Shop API"
     DEBUG: bool = False
     DATABASE_URL: str = Field(..., description="Database URL")
-    frontend_url: Union[str, List[str]] = "http://localhost:5173"
+    FRONTEND_URL: str = Field(..., description="Redirect to frontend")
+    REDIRECT_URL: str = Field(..., description="Base redirect URL for payments")
+    STRIPE_WEBHOOK_SECRET: str  #STRIPE_WEBHOOK_SECRET: str = Field(..., description="Stripe webhook")
     SECRET_KEY: str = Field(..., description="Secret key for JWT signing")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 600
     ALGORITHM: str = "HS256"
     ALLOWED_ORIGINS: str = Field(..., description="Comma-separated list of allowed CORS origins")
+    EXPIRES_AT: str = Field(..., description="Payment session Timeout")
     PORT: int
     STRIPE_PUBLISHABLE_KEY: Optional[str] = Field(
         None,
@@ -39,11 +42,7 @@ class Settings(BaseSettings):
 
     def get_frontend_url(self) -> str:
         """Get the frontend base URL (the first one in the list)"""
-        if isinstance(self.frontend_url, list) and len(self.frontend_url) > 0:
-            return self.frontend_url[0].rstrip('/')
-        elif isinstance(self.frontend_url, str):
-            return self.frontend_url.rstrip('/')
-        return "http://localhost:5173"
+        return self.FRONTEND_URL
 
 
     def get_frontend_success_url(self) -> str:
