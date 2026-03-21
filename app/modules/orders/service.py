@@ -1,15 +1,13 @@
+from datetime import datetime, timezone, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-
 from app.modules.cart.service import CartService
 from app.modules.orders.models import Order, OrderItem, OrderStatus
 from app.modules.cart.repository import CartRepository
-from app.modules.payment.stripe_client import create_payment_intent # пока оставим
-
-
 from decimal import Decimal
 from fastapi import HTTPException
+from app.modules.products.models import Product
+
 
 class OrderService:
     """Service layer for order business logic."""
@@ -93,55 +91,65 @@ async def checkout_cart(db: AsyncSession, user) -> dict:
 
     result = await db.execute(
         select(Order)
-        .where(Order.user_id == user.id)
-        .where(Order.status == OrderStatus.PENDING)
+        .where(
+            Order.user_id == user.id,
+            Order.status == OrderStatus.PENDING
+        )
+        .order_by(Order.created_at.desc())
+        .limit(1)
     )
+
     pending_order = result.scalar_one_or_none()
 
     if pending_order:
-        return {
-            "order_id": pending_order.id,
-            "status": pending_order.status,
-            "total_amount": pending_order.total_amount,
-        }
+        now = datetime.now(timezone.utc)
+        if pending_order.expires_at and pending_order.expires_at < now:
+            pending_order.status = OrderStatus.EXPIRED
+            await db.commit()
+            pending_order = None
 
+    if not pending_order:
+        cart_service = CartService(CartRepository(db))
+        cart = await cart_service.get_cart(user.id)
 
-    cart_repo = CartRepository(db)
-    cart_service = CartService(cart_repo)
-    cart_items = await cart_service.get_cart_items_for_checkout(user.id)
+        if not cart or not cart.items:
+            raise HTTPException(400, "Cart is empty")
 
-    if not cart_items:
-        raise HTTPException(400, "Cart is empty")
-
-    total_amount = sum(
-        Decimal(item.product.price) * item.quantity for item in cart_items
-    )
-
-    order = Order(
-        user_id=user.id,
-        status=OrderStatus.PENDING,
-        total_amount=total_amount,
-        stripe_payment_intent_id=None,
-    )
-    db.add(order)
-    await db.flush()
-
-    order_items = [
-        OrderItem(
-            order_id=order.id,
-            product_id=item.product.id,
-            product_name=item.product.name,
-            price=Decimal(item.product.price),
-            quantity=item.quantity,
+        now = datetime.now(timezone.utc)
+        new_order = Order(
+            user_id=user.id,
+            status=OrderStatus.PENDING,
+            total_amount=Decimal("0.00"),
+            expires_at=now + timedelta(minutes=10),
         )
-        for item in cart_items
-    ]
-    db.add_all(order_items)
+        db.add(new_order)
+        await db.flush()
 
-    await db.commit()
+        total_amount = Decimal("0.00")
+
+        for cart_item in cart.items:
+            product = await db.get(Product, cart_item.product_id)
+            if not product:
+                raise HTTPException(400, f"Product {cart_item.product_id} not found")
+
+            order_item = OrderItem(
+                order_id=new_order.id,
+                product_id=product.id,
+                product_name=product.name,
+                price=product.price,
+                quantity=cart_item.quantity
+            )
+            db.add(order_item)
+            total_amount += product.price * cart_item.quantity
+
+        new_order.total_amount = total_amount
+        await db.commit()
+
+        pending_order = new_order
 
     return {
-        "order_id": order.id,
-        "status": order.status,
-        "total_amount": order.total_amount,
+        "order_id": pending_order.id,
+        "amount": float(pending_order.total_amount),
+        "currency": "EUR",
+        "expires_at": pending_order.expires_at.isoformat() if pending_order.expires_at else None,
     }
