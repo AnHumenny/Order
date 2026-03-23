@@ -1,18 +1,33 @@
 import enum
 from decimal import Decimal
 from datetime import datetime
-from sqlalchemy import ForeignKey, DateTime, Numeric, String, Enum, Integer
+from sqlalchemy import ForeignKey, DateTime, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 
 
 class OrderStatus(str, enum.Enum):
+    """Order statuses in the system.
+
+    Represents the full lifecycle of an order:
+    - DRAFT: Initial draft, order created but not confirmed
+    - PENDING: Awaiting payment, order confirmed
+    - PAID: Successfully paid
+    - CANCELED: Canceled by user or system
+    - FAILED: Payment failed
+    - EXPIRED: Order expired after 30 minutes
+
+    Note:
+        Orders in PENDING state that exceed the 30-minute time limit are marked as EXPIRED
+        and become invalid for payment.
+    """
     DRAFT = "draft"
     PENDING = "pending"
     PAID = "paid"
     CANCELED = "canceled"
     FAILED = "failed"
+    EXPIRED = "expired"
 
 
 class Order(Base):
@@ -67,6 +82,7 @@ class Order(Base):
     )
 
     checkout_session_id = mapped_column(String, nullable=True, unique=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class OrderItem(Base):

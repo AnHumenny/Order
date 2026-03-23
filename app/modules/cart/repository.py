@@ -65,6 +65,7 @@ class CartRepository:
             )
         )
 
+
     async def clear_cart_items(self, user_id: int) -> None:
         """Clear all items from a user's shopping cart.
 
@@ -80,6 +81,8 @@ class CartRepository:
         await self.session.execute(
             delete(CartItem).where(CartItem.cart_id == cart.id)
         )
+
+        await self.session.commit()
 
 
     async def get_cart_item_by_id(self, item_id: int) -> CartItem | None:
