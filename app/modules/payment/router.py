@@ -31,6 +31,7 @@ async def create_checkout_session(user=Depends(get_current_user),
 
 @router.get("/cancel")
 async def payment_cancel():
+    """Redirect user to cart page after cancelling Stripe Checkout payment."""
     return await process_payment_cancel()
 
 
@@ -58,4 +59,9 @@ async def stripe_webhook(request: Request, session: AsyncSession = Depends(get_s
 
 @router.get("/status")
 async def order_status(order_id: int, session: AsyncSession = Depends(get_session)):
+    """Get the current status of an order.
+
+    Used by frontend to poll for payment confirmation after Stripe redirect.
+    Returns "success", "pending", or "error" with a descriptive message.
+    """
     return await get_order_status(order_id, session)

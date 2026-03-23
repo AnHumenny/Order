@@ -12,7 +12,7 @@ from app.modules.orders.models import Order, OrderStatus
 
 
 async def create_checkout_session_service(user, session: AsyncSession) -> dict:
-    """Создаёт Stripe Checkout Session для текущего PENDING заказа."""
+    """Creates a Stripe Checkout Session for the current PENDING order."""
 
     result = await session.execute(
         select(Order)
@@ -67,6 +67,15 @@ async def create_checkout_session_service(user, session: AsyncSession) -> dict:
 
 
 async def process_payment_cancel():
+    """Process payment cancellation.
+
+    Returns a redirect response to the frontend cart page when a user
+    cancels the payment flow in Stripe Checkout.
+
+    Returns:
+        RedirectResponse: Redirect to frontend cart URL
+    """
+
     frontend_cart_url = settings.get_frontend_cancel_url()
     return RedirectResponse(url=frontend_cart_url)
 
