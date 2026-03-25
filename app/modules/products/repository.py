@@ -1,6 +1,6 @@
 from typing import Optional, List, Tuple
 from fastapi import HTTPException
-from sqlalchemy import select, update, delete, func, Result, or_
+from sqlalchemy import select, update, delete, func, Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from starlette import status
@@ -23,6 +23,31 @@ class ProductRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+
+    @staticmethod
+    def _normalize_description(product: Product) -> Product:
+        """Normalizes product description."""
+        if product.description:
+            if isinstance(product.description, str):
+                try:
+                    import json
+                    product.description = json.loads(product.description)
+                except:
+                    product.description = {"main": product.description}
+            elif isinstance(product.description, dict):
+                default = {"main": "", "specs": "", "features": "", "reviews": ""}
+                default.update(product.description)
+                product.description = default
+        return product
+
+
+    def _normalize_products_list(self, products: List[Product]) -> List[Product]:
+        """Normalizes the grocery list."""
+        for product in products:
+            self._normalize_description(product)
+        return products
+
+
     async def get(self, product_id: int) -> Product | None:
         """Retrieve any product by ID, regardless of active status.
 
@@ -32,7 +57,11 @@ class ProductRepository:
         Returns:
             Product | None: Product if found, None otherwise
         """
-        return await self.session.get(Product, product_id)
+        product = await self.session.get(Product, product_id)
+        if product:
+            self._normalize_description(product)
+        return product
+
 
     async def get_active(self, product_id: int) -> Product | None:
         """Retrieve only active (available) product by ID.
@@ -43,13 +72,17 @@ class ProductRepository:
         Returns:
             Product | None: Active product if found, None otherwise
         """
-        return await self.session.scalar(
+        product = await self.session.scalar(
             select(Product)
             .where(
                 Product.id == product_id,
                 Product.is_active.is_(True),
             )
         )
+        if product:
+            self._normalize_description(product)
+        return product
+
 
     async def get_all(
             self,
@@ -78,7 +111,9 @@ class ProductRepository:
             .limit(limit)
             .order_by(Product.id.desc())
         )
-        return list(result)
+        products = list(result)
+        return self._normalize_products_list(products)
+
 
     async def get_product_by_id(self, product_id: int) -> Product:
         """Retrieve product by ID with category loaded.
@@ -104,10 +139,20 @@ class ProductRepository:
                 detail="Product not found",
             )
 
-        return product
+        return self._normalize_description(product)
+
 
     async def create_with_category(self, product: Product) -> Product:
         """Create product and eagerly load category."""
+
+        if product.description and isinstance(product.description, str):
+            product.description = {
+                "main": product.description,
+                "specs": "",
+                "features": "",
+                "reviews": ""
+            }
+
         self.session.add(product)
         await self.session.flush()
 
@@ -118,7 +163,9 @@ class ProductRepository:
         )
 
         result = await self.session.execute(stmt)
-        return result.scalar_one()
+        product = result.scalar_one()
+        return self._normalize_description(product)
+
 
     async def deactivate(self, product_id: int) -> bool:
         """Deactivate (soft delete) a product.
@@ -159,15 +206,23 @@ class ProductRepository:
 
         return updated_count > 0
 
+
     async def get_by_id(self, product_id: int) -> Optional[Product]:
         """Get product by ID."""
-        return await self.session.get(Product, product_id)
+        product = await self.session.get(Product, product_id)
+        if product:
+            self._normalize_description(product)
+        return product
+
 
     async def get_by_name(self, name: str) -> Optional[Product]:
         """Get product by name."""
         query = select(Product).where(Product.name == name)
         result = await self.session.execute(query)
-        return result.scalar_one_or_none()
+        product = result.scalar_one_or_none()
+        if product:
+            self._normalize_description(product)
+        return product
 
     async def check_category_exists(self, category_id: int) -> bool:
         """Check if category exists."""
@@ -175,8 +230,23 @@ class ProductRepository:
         result = await self.session.execute(query)
         return result.first() is not None
 
+
     async def update(self, product_id: int, update_data: dict) -> Product:
         """Update product and return with category loaded."""
+
+        if 'description' in update_data and update_data['description']:
+            if isinstance(update_data['description'], str):
+                import json
+                try:
+                    update_data['description'] = json.loads(update_data['description'])
+                except:
+                    update_data['description'] = {
+                        "main": update_data['description'],
+                        "specs": "",
+                        "features": "",
+                        "reviews": ""
+                    }
+
         await self.session.execute(
             update(Product)
             .where(Product.id == product_id)
@@ -191,8 +261,8 @@ class ProductRepository:
         )
         result = await self.session.execute(stmt)
         product = result.scalar_one()
+        return self._normalize_description(product)
 
-        return product
 
     async def delete(self, product_id: int) -> bool:
         """Delete a product from the database by its ID.
@@ -218,6 +288,7 @@ class ProductRepository:
             return result.rowcount > 0
         return False
 
+
     async def can_delete_product(self, product_id: int) -> bool:
         """Check if product can be deleted (not in orders/carts)."""
         order_check = await self.session.execute(
@@ -233,7 +304,6 @@ class ProductRepository:
             return False
 
         return True
-
 
     async def get_product_by_category(
             self,
@@ -260,7 +330,8 @@ class ProductRepository:
             .limit(limit)
             .order_by(Product.id.desc())
         )
-        return list(result.scalars().all())
+        products = list(result.scalars().all())
+        return self._normalize_products_list(products)
 
 
     async def get_products_by_categories(
@@ -288,7 +359,9 @@ class ProductRepository:
             .limit(limit)
             .order_by(Product.id.desc())
         )
-        return list(result.scalars().all())
+        products = list(result.scalars().all())
+        return self._normalize_products_list(products)
+
 
     async def count_products_by_category(self, category_id: int) -> int:
         """Count active products in a specific category.
@@ -325,6 +398,7 @@ class ProductRepository:
         )
         return result.scalar() or 0
 
+
     async def get_all_with_filters(
             self,
             search: Optional[str] = None,
@@ -346,8 +420,7 @@ class ProductRepository:
 
         if search:
             query = query.where(
-                (Product.name.ilike(f"%{search}%")) |
-                (Product.description.ilike(f"%{search}%"))
+                Product.name.ilike(f"%{search}%")
             )
 
         if min_price is not None:
@@ -363,6 +436,7 @@ class ProductRepository:
 
         result = await self.session.execute(query)
         products = result.scalars().all()
+        products = self._normalize_products_list(list(products))
 
         return [
             {
@@ -385,16 +459,8 @@ class ProductRepository:
             limit: int = 100,
             include_inactive: bool = False
     ) -> List[dict]:
-        """Get products with full category hierarchy details.
+        """Get products with full category hierarchy details."""
 
-        Args:
-            skip: Number of records to skip
-            limit: Maximum number of records to return
-            include_inactive: Whether to include inactive products
-
-        Returns:
-            List[dict]: Products with enriched category information
-        """
         query = select(Product).options(
             selectinload(Product.category)
             .selectinload(Category.parent)
@@ -407,6 +473,7 @@ class ProductRepository:
 
         result = await self.session.execute(query)
         products = result.scalars().all()
+        products = self._normalize_products_list(list(products))
 
         return [
             {
@@ -429,14 +496,15 @@ class ProductRepository:
 
     def _get_category_level(self, category: Category, current_level: int = 0) -> int:
         """Calculate category level in hierarchy."""
+
         if not category.parent:
             return current_level
         return self._get_category_level(category.parent, current_level + 1)
 
-
     @staticmethod
     def _get_category_path_string(category: Category) -> str:
         """Build category path string."""
+
         if not category:
             return ""
 
@@ -469,7 +537,7 @@ class ProductRepository:
         result = await self.session.execute(query)
         products = result.scalars().all()
 
-        return list(products)
+        return self._normalize_products_list(list(products))
 
 
     async def search_by_name_with_count(
@@ -501,8 +569,9 @@ class ProductRepository:
         result: Result = await self.session.execute(query)
         products_seq = result.scalars().all()
 
-        return list(products_seq), total if total is not None else 0
+        products = self._normalize_products_list(list(products_seq))
 
+        return products, total if total is not None else 0
 
     async def get_all_with_filters_and_count(
             self,
@@ -520,10 +589,7 @@ class ProductRepository:
 
         if search:
             query = query.where(
-                or_(
-                    Product.name.ilike(f"%{search}%"),
-                    Product.description.ilike(f"%{search}%")
-                )
+                Product.name.ilike(f"%{search}%")
             )
 
         if min_price is not None:
@@ -546,4 +612,32 @@ class ProductRepository:
         )
         products = result.scalars().all()
 
-        return list(products), total
+        return self._normalize_products_list(list(products)), total
+
+
+    async def update_description_section(
+            self,
+            product_id: int,
+            section: str,
+            content: str
+    ) -> Product:
+        """Update a specific section of the product description."""
+
+        product = await self.get(product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        if not product.description or not isinstance(product.description, dict):
+            product.description = {
+                "main": "",
+                "specs": "",
+                "features": "",
+                "reviews": ""
+            }
+
+        product.description[section] = content
+
+        await self.session.commit()
+        await self.session.refresh(product)
+
+        return self._normalize_description(product)

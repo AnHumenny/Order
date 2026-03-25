@@ -1,11 +1,13 @@
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, ConfigDict, Field
 from decimal import Decimal
 from app.modules.category.schemas import CategoryRead, CategoryTree
+from app.modules.products.gallery.schemas import ProductImageRead
 
 
 class ProductBase(BaseModel):
     """Base product schema with common attributes."""
+
     name: str = Field(..., max_length=255, description="Product name", json_schema_extra={"example": "iPhone 13"})
     description: Optional[str] = Field(None, max_length=1000, description="Product description",
                                        json_schema_extra={"example": "The latest iPhone model"})
@@ -15,6 +17,7 @@ class ProductBase(BaseModel):
 
 class ProductCreate(ProductBase):
     """Schema for creating a new product."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -29,6 +32,7 @@ class ProductCreate(ProductBase):
 
 class ProductUpdate(BaseModel):
     """Schema for updating existing products."""
+
     name: Optional[str] = Field(None, max_length=255, description="New product name")
     description: Optional[str] = Field(None, max_length=1000, description="New description")
     price: Optional[Decimal] = Field(None, gt=0, description="New price")
@@ -48,36 +52,51 @@ class ProductUpdate(BaseModel):
 
 
 class ProductRead(BaseModel):
-    """Schema for reading product information."""
     id: int
     name: str
-    description: Optional[str] = None
+    description: Optional[Dict[str, Any]] = None
     price: Decimal
     is_active: bool
     category_id: Optional[int] = None
-    category: Optional[CategoryRead] = Field(
+    category: Optional["CategoryRead"] = None
+    images: List["ProductImageRead"] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProductDetailRead(ProductRead):
+    """Detailed product schema with separated main and gallery images."""
+
+    main_image: Optional[ProductImageRead] = Field(
         None,
-        description="Category information with possible parent/children"
+        description="Main product image"
+    )
+    gallery_images: List[ProductImageRead] = Field(
+        default_factory=list,
+        description="Additional gallery images (excluding main)"
     )
 
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        json_schema_extra={
-            "example": {
-                "id": 1,
-                "name": "iPhone 13",
-                "description": "The latest iPhone model",
-                "price": 999.99,
-                "is_active": True,
-                "category_id": 2,
-            }
+    @classmethod
+    def from_product(cls, product):
+        """Create detailed schema from product model."""
+        data = {
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "price": product.price,
+            "is_active": product.is_active,
+            "category_id": product.category_id,
+            "category": product.category,
+            "images": product.images,
+            "main_image": product.main_image,
+            "gallery_images": product.gallery_images,
         }
-    )
+        return cls(**data)
 
 
 class ProductWithFullCategory(ProductRead):
     """Extended product schema with complete category tree."""
+
     category_tree: Optional[CategoryTree] = Field(
         None,
         description="Full category tree from root to product's category"
@@ -86,6 +105,7 @@ class ProductWithFullCategory(ProductRead):
 
 class ProductFilterParams(BaseModel):
     """Product filtering and pagination parameters."""
+
     search: Optional[str] = Field(None, description="Search in name and description")
     min_price: Optional[float] = Field(None, gt=0, description="Minimum price")
     max_price: Optional[float] = Field(None, gt=0, description="Maximum price")
@@ -104,6 +124,10 @@ class ProductFilterParams(BaseModel):
         True,
         description="Filter by active status"
     )
+    has_images: Optional[bool] = Field(
+        None,
+        description="Filter products with/without images"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -114,7 +138,8 @@ class ProductFilterParams(BaseModel):
                 "category_id": 2,
                 "include_subcategories": True,
                 "skip": 0,
-                "limit": 20
+                "limit": 20,
+                "has_images": True
             }
         }
     )
@@ -122,9 +147,10 @@ class ProductFilterParams(BaseModel):
 
 class ProductFilter(BaseModel):
     """Product filter schema for list responses (lightweight version)."""
+
     id: int
     name: str
-    description: Optional[str] = None
+    description: Optional[Dict[str, Any]] = None
     price: float
     category_id: Optional[int] = None
     category_name: Optional[str] = Field(
@@ -132,6 +158,14 @@ class ProductFilter(BaseModel):
         description="Category name for quick reference"
     )
     is_active: bool
+    has_images: bool = Field(
+        False,
+        description="Whether product has any images"
+    )
+    main_image_url: Optional[str] = Field(
+        None,
+        description="URL of main product image (if exists)"
+    )
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -141,7 +175,9 @@ class ProductFilter(BaseModel):
                 "name": "iPhone 13",
                 "price": 999.99,
                 "category_name": "Smartphones",
-                "is_active": True
+                "is_active": True,
+                "has_images": True,
+                "main_image_url": "/static/products/main/1_abc123.jpg"
             }
         }
     )
@@ -149,6 +185,7 @@ class ProductFilter(BaseModel):
 
 class ProductsByCategoryResponse(BaseModel):
     """Response schema for products grouped by category."""
+
     category_id: int
     category_name: str
     category_path: str
@@ -176,6 +213,7 @@ class ProductsByCategoryResponse(BaseModel):
 
 class ProductListResponse(BaseModel):
     """Paginated product list response."""
+
     items: List[ProductRead]
     total: int
     skip: int
@@ -196,6 +234,7 @@ class ProductListResponse(BaseModel):
 
 class ProductDelete(BaseModel):
     """Response schema for product deletion."""
+
     id: int
     status: str = "deleted"
     message: str = "Product successfully deleted"
@@ -209,3 +248,12 @@ class ProductDelete(BaseModel):
             }
         }
     )
+
+
+class ProductDescription(BaseModel):
+    main: str = ""
+    specs: str = ""
+    features: str = ""
+    reviews: str = ""
+
+    model_config = ConfigDict(from_attributes=True)

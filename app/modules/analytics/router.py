@@ -6,7 +6,7 @@ from app.users.models import User
 from app.modules.analytics.repository import AnalyticsRepository
 from app.modules.analytics.service import AnalyticsService
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(prefix="/analytics")
 
 
 async def get_analytics_service(session: AsyncSession = Depends(get_session)) -> AnalyticsService:
