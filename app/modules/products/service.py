@@ -1,3 +1,4 @@
+import logging
 from typing import List, Tuple
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
@@ -5,7 +6,7 @@ from starlette import status
 from app.modules.category.repository import CategoryRepository
 from app.modules.products.models import Product
 from app.modules.products.repository import ProductRepository
-from app.modules.products.schemas import ProductCreate, ProductUpdate, ProductFilterParams
+from app.modules.products.schemas import ProductCreate, ProductUpdate, ProductFilterParams, ProductFilter
 
 
 class ProductService:
@@ -14,7 +15,6 @@ class ProductService:
     def __init__(self, repo: ProductRepository, category_repo: CategoryRepository):
         self.repo = repo
         self.category_repo = category_repo
-
 
     async def create_product(self, data: ProductCreate) -> Product:
         """Create product with category validation."""
@@ -52,7 +52,6 @@ class ProductService:
                     detail="Database integrity error",
                 )
 
-
     async def get_list_products(
             self,
             skip: int = 0,
@@ -62,14 +61,12 @@ class ProductService:
         """Get list of all products."""
         return await self.repo.get_all(skip, limit, include_inactive)
 
-
     async def get_product_by_id(
             self,
             product_id: int,
     ) -> Product:
         """Get single product by id."""
         return await self.repo.get_product_by_id(product_id)
-
 
     async def delete_product(self, product_id: int):
         """Delete a product by ID with existence and usage validation."""
@@ -87,7 +84,6 @@ class ProductService:
                 detail=f"Product with id {product_id} not found",
             )
 
-
     async def deactivate_product(self, product_id: int):
         """Deactivate a product by ID."""
         deactivate = await self.repo.deactivate(product_id)
@@ -98,7 +94,6 @@ class ProductService:
                 detail="Product not found",
             )
 
-
     async def activate_product(self, product_id: int):
         """Activate a product by ID."""
         activate = await self.repo.activate(product_id)
@@ -108,7 +103,6 @@ class ProductService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Product not found",
             )
-
 
     async def list_category_products(
             self,
@@ -141,7 +135,6 @@ class ProductService:
             return await self.repo.get_products_by_categories(category_ids, skip, limit)
         else:
             return await self.repo.get_product_by_category(category_id, skip, limit)
-
 
     async def update_product(self, product_id: int, update_data: ProductUpdate) -> Product:
         """Update product with validation and transaction management."""
@@ -195,7 +188,6 @@ class ProductService:
                 detail=f"Error updating product: {str(e)}"
             )
 
-
     async def get_products(self, filters: ProductFilterParams) -> List[dict]:
         """Get a list of products with filtering.
 
@@ -220,7 +212,6 @@ class ProductService:
         )
         return products
 
-
     async def get_products_by_category_tree(
             self,
             category_ids: List[int],
@@ -229,7 +220,6 @@ class ProductService:
     ) -> list[Product]:
         """Get products from multiple categories."""
         return await self.repo.get_products_by_categories(category_ids, skip, limit)
-
 
     async def get_products_count_by_category(
             self,
@@ -259,9 +249,9 @@ class ProductService:
         else:
             return await self.repo.count_products_by_category(category_id)
 
-
     async def get_products_with_category_path(self, product_id: int) -> dict:
         """Get product with full category path."""
+
         product = await self.get_product_by_id(product_id)
 
         if product.category_id:
@@ -277,27 +267,54 @@ class ProductService:
             "category_path_string": path_string
         }
 
+
     async def search_products_by_name(
             self,
             name: str,
             skip: int = 0,
             limit: int = 20,
             only_active: bool = True
-    ) -> List[Product]:
-        """Search products by name with validation."""
+    ) -> List[ProductFilter]:
+        """Search products by name."""
 
-        if not name or len(name.strip()) < 2:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Search query must be at least 2 characters long"
+        try:
+            products = await self.repo.search_by_name(
+                name=name,
+                skip=skip,
+                limit=limit,
+                only_active=only_active
             )
 
-        return await self.repo.search_by_name(
-            name=name.strip(),
-            skip=skip,
-            limit=limit,
-            only_active=only_active
-        )
+            result = []
+            for product in products:
+                main_image_url = None
+                has_images = False
+
+                if product.images and len(product.images) > 0:
+                    has_images = True
+                    main_img = next((img for img in product.images if img.is_main), None)
+                    if main_img:
+                        main_image_url = main_img.image_url
+                    else:
+                        main_image_url = product.images[0].image_url
+
+                result.append(ProductFilter(
+                    id=product.id,
+                    name=product.name,
+                    description=product.description,
+                    price=float(product.price),
+                    category_id=product.category_id,
+                    category_name=product.category.name if product.category else None,
+                    is_active=product.is_active,
+                    has_images=has_images,
+                    main_image_url=main_image_url
+                ))
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Search error: {e}")
+            return []
 
 
     async def search_products_with_count(
@@ -321,7 +338,6 @@ class ProductService:
             limit=limit,
             only_active=only_active
         )
-
 
     async def search_products_advanced(
             self,

@@ -3,6 +3,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProductImageBase(BaseModel):
+    """Base schema for product image data."""
+
     image_url: str = Field(..., max_length=500)
     alt_text: Optional[str] = Field(None, max_length=200)
     is_main: bool = Field(False)
@@ -10,12 +12,16 @@ class ProductImageBase(BaseModel):
 
 
 class ProductImageCreate(ProductImageBase):
+    """Schema for creating a new product image."""
+
     product_id: int
     file_size: Optional[int] = None
     mime_type: Optional[str] = None
 
 
 class ProductImageUpdate(BaseModel):
+    """Schema for updating an existing product image."""
+
     image_url: Optional[str] = Field(None, max_length=500)
     alt_text: Optional[str] = Field(None, max_length=200)
     is_main: Optional[bool] = None
@@ -23,6 +29,8 @@ class ProductImageUpdate(BaseModel):
 
 
 class ProductImageRead(ProductImageBase):
+    """Schema for reading product image data."""
+
     id: int
     product_id: int
     file_size: Optional[int] = None

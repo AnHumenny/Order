@@ -1,4 +1,4 @@
-from typing import Optional, Any, Coroutine
+from typing import Optional
 from fastapi import UploadFile, HTTPException, status
 from app.modules.products.gallery.repository import ProductImageRepository
 from app.modules.products.gallery.schemas import ProductImageUpdate
@@ -6,6 +6,8 @@ from app.modules.products.gallery.upload import ImageUploadService
 
 
 class ProductImageService:
+    """Service for managing product images with upload, update, and deletion."""
+
     def __init__(self, image_repo: ProductImageRepository):
         self.image_repo = image_repo
         self.upload_service = ImageUploadService()
@@ -18,6 +20,8 @@ class ProductImageService:
         is_main: bool = False,
         alt_text: Optional[str] = None
     ):
+        """Upload a new image for a product with validation."""
+
         current_count = await self.image_repo.count_by_product(product_id)
         if current_count >= 7:
             raise HTTPException(
@@ -46,6 +50,7 @@ class ProductImageService:
 
 
     async def get_product_images(self, product_id: int):
+        """Get all images for a product."""
         return await self.image_repo.get_by_product(product_id)
 
 
@@ -55,6 +60,8 @@ class ProductImageService:
         product_id: int,
         update_data: ProductImageUpdate
     ):
+        """Update an existing product image."""
+
         image = await self.image_repo.get_by_id(image_id)
         if not image or image.product_id != product_id:
             return None
@@ -67,6 +74,8 @@ class ProductImageService:
 
 
     async def delete_image(self, image_id: int, product_id: int) -> bool | None:
+        """Delete a product image and its file from storage."""
+
         image = await self.image_repo.get_by_id(image_id)
         if not image or image.product_id != product_id:
             return False
@@ -76,6 +85,8 @@ class ProductImageService:
 
 
     async def set_as_main(self, image_id: int, product_id: int):
+        """Set an image as the main image for a product."""
+
         image = await self.image_repo.get_by_id(image_id)
         if not image or image.product_id != product_id:
             return None

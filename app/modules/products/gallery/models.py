@@ -8,6 +8,8 @@ if TYPE_CHECKING:
 
 
 class ProductImage(Base):
+    """Product image model with URL, metadata, and ordering."""
+
     __tablename__ = "product_images"
 
     id: Mapped[int] = mapped_column(primary_key=True)

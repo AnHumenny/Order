@@ -84,72 +84,63 @@ async def get_pending_order(db: AsyncSession, user_id: int):
 
 
 async def checkout_cart(db: AsyncSession, user) -> dict:
-    """Creates an order for the current user from the shopping cart.
-
-    If there is already an order with the PENDING status, it returns it.
-    """
+    """Hard recalculation of the basket: delete the old order, create a new one with up-to-date data"""
 
     result = await db.execute(
-        select(Order)
-        .where(
+        select(Order).where(
             Order.user_id == user.id,
             Order.status == OrderStatus.PENDING
         )
-        .order_by(Order.created_at.desc())
-        .limit(1)
     )
+    old_orders = result.scalars().all()
 
-    pending_order = result.scalar_one_or_none()
+    for old_order in old_orders:
+        await db.delete(old_order)
+    await db.flush()
 
-    if pending_order:
-        now = datetime.now(timezone.utc)
-        if pending_order.expires_at and pending_order.expires_at < now:
-            pending_order.status = OrderStatus.EXPIRED
-            await db.commit()
-            pending_order = None
+    cart_service = CartService(CartRepository(db))
+    cart = await cart_service.get_cart(user.id)
 
-    if not pending_order:
-        cart_service = CartService(CartRepository(db))
-        cart = await cart_service.get_cart(user.id)
+    if not cart or not cart.items:
+        raise HTTPException(400, "Cart is empty")
 
-        if not cart or not cart.items:
-            raise HTTPException(400, "Cart is empty")
+    now = datetime.now(timezone.utc)
+    new_order = Order(
+        user_id=user.id,
+        status=OrderStatus.PENDING,
+        total_amount=Decimal("0.00"),
+        expires_at=now + timedelta(minutes=10),
+    )
+    db.add(new_order)
+    await db.flush()
 
-        now = datetime.now(timezone.utc)
-        new_order = Order(
-            user_id=user.id,
-            status=OrderStatus.PENDING,
-            total_amount=Decimal("0.00"),
-            expires_at=now + timedelta(minutes=10),
+    total_amount = Decimal("0.00")
+
+    for cart_item in cart.items:
+        product = await db.get(Product, cart_item.product_id)
+        if not product:
+            raise HTTPException(400, f"Product {cart_item.product_id} not found")
+
+        current_price = product.price
+        current_quantity = cart_item.quantity
+        subtotal = current_price * current_quantity
+
+        order_item = OrderItem(
+            order_id=new_order.id,
+            product_id=product.id,
+            product_name=product.name,
+            price=current_price,
+            quantity=current_quantity
         )
-        db.add(new_order)
-        await db.flush()
+        db.add(order_item)
+        total_amount += subtotal
 
-        total_amount = Decimal("0.00")
-
-        for cart_item in cart.items:
-            product = await db.get(Product, cart_item.product_id)
-            if not product:
-                raise HTTPException(400, f"Product {cart_item.product_id} not found")
-
-            order_item = OrderItem(
-                order_id=new_order.id,
-                product_id=product.id,
-                product_name=product.name,
-                price=product.price,
-                quantity=cart_item.quantity
-            )
-            db.add(order_item)
-            total_amount += product.price * cart_item.quantity
-
-        new_order.total_amount = total_amount
-        await db.commit()
-
-        pending_order = new_order
+    new_order.total_amount = total_amount
+    await db.commit()
 
     return {
-        "order_id": pending_order.id,
-        "amount": float(pending_order.total_amount),
+        "order_id": new_order.id,
+        "amount": float(new_order.total_amount),
         "currency": "EUR",
-        "expires_at": pending_order.expires_at.isoformat() if pending_order.expires_at else None,
+        "expires_at": new_order.expires_at.isoformat() if new_order.expires_at else None,
     }

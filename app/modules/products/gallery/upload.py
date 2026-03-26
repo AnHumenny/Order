@@ -8,6 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 class ImageUploadService:
+    """Service for handling product image uploads and deletions."""
+
     def __init__(self, upload_dir: str = "static/products"):
         self.upload_dir = Path(upload_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)

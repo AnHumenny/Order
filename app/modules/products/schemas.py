@@ -52,6 +52,8 @@ class ProductUpdate(BaseModel):
 
 
 class ProductRead(BaseModel):
+    """Product read schema with category and images relations."""
+
     id: int
     name: str
     description: Optional[Dict[str, Any]] = None
@@ -79,6 +81,7 @@ class ProductDetailRead(ProductRead):
     @classmethod
     def from_product(cls, product):
         """Create detailed schema from product model."""
+
         data = {
             "id": product.id,
             "name": product.name,
@@ -251,6 +254,8 @@ class ProductDelete(BaseModel):
 
 
 class ProductDescription(BaseModel):
+    """Product description sections."""
+
     main: str = ""
     specs: str = ""
     features: str = ""

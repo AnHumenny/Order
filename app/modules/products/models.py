@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class Product(Base):
+    """Product model with category relationship and image handling."""
+
     __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(primary_key=True)

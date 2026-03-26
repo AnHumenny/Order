@@ -1,4 +1,5 @@
-from typing import Optional, List, Tuple
+import logging
+from typing import Optional, List, Tuple, Any, Coroutine
 from fastapi import HTTPException
 from sqlalchemy import select, update, delete, func, Result
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +8,7 @@ from starlette import status
 from app.modules.cart.models import CartItem
 from app.modules.category.models import Category
 from app.modules.orders.models import OrderItem
+from app.modules.products import Product
 from app.modules.products.models import Product
 
 
@@ -501,6 +503,7 @@ class ProductRepository:
             return current_level
         return self._get_category_level(category.parent, current_level + 1)
 
+
     @staticmethod
     def _get_category_path_string(category: Category) -> str:
         """Build category path string."""
@@ -515,29 +518,38 @@ class ProductRepository:
             current = current.parent
         return " > ".join(reversed(path_parts))
 
-
     async def search_by_name(
             self,
             name: str,
             skip: int = 0,
             limit: int = 20,
             only_active: bool = True
-    ) -> List[Product]:
+    ) -> list[Product]:
         """Search products by name (case-insensitive partial match)."""
 
-        query = select(Product).where(
-            Product.name.ilike(f"%{name}%")
-        )
+        try:
+            print(f"Repository search_by_name: {name}")
 
-        if only_active:
-            query = query.where(Product.is_active == True)
+            query = select(Product).options(
+                selectinload(Product.images),
+                selectinload(Product.category)
+            ).where(
+                Product.name.ilike(f"%{name}%")
+            )
 
-        query = query.offset(skip).limit(limit)
+            if only_active:
+                query = query.where(Product.is_active == True)
 
-        result = await self.session.execute(query)
-        products = result.scalars().all()
+            query = query.offset(skip).limit(limit)
 
-        return self._normalize_products_list(list(products))
+            result = await self.session.execute(query)
+            products = result.scalars().all()
+
+            return self._normalize_products_list(list(products))
+
+        except Exception as e:
+            logging.error(f"ERROR in search_by_name: {e}")
+            return []
 
 
     async def search_by_name_with_count(
@@ -549,7 +561,10 @@ class ProductRepository:
     ) -> tuple[List[Product], int]:
         """Search products by name and return total count for pagination."""
 
-        base_query = select(Product).where(
+        base_query = select(Product).options(
+            selectinload(Product.images),
+            selectinload(Product.category)
+        ).where(
             Product.name.ilike(f"%{name}%")
         )
 
@@ -572,6 +587,7 @@ class ProductRepository:
         products = self._normalize_products_list(list(products_seq))
 
         return products, total if total is not None else 0
+
 
     async def get_all_with_filters_and_count(
             self,

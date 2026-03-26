@@ -17,12 +17,14 @@ async def get_product_images(
         product_id: int,
         session: AsyncSession = Depends(get_session)
 ):
+    """Get all images for a product."""
+
     repo = ProductImageRepository(session)
     service = ProductImageService(repo)
     return await service.get_product_images(product_id)
 
 
-@router.post("/upload", response_model=ProductImageRead, status_code=status.HTTP_201_CREATED)
+@router.post("/upload", response_model=ProductImageRead, status_code=status.HTTP_201_CREATED) # добавить thumbnails
 async def upload_product_image(
         product_id: int,
         file: UploadFile = File(...),
@@ -31,6 +33,8 @@ async def upload_product_image(
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
 ):
+    """Upload a new image for a product. Max 7 images per product, max 5MB."""
+
     allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
     if file.content_type not in allowed_types:
         raise HTTPException(
@@ -63,6 +67,8 @@ async def update_product_image(
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
 ):
+    """Update an existing product image."""
+
     repo = ProductImageRepository(session)
     service = ProductImageService(repo)
 
@@ -81,6 +87,8 @@ async def delete_product_image(
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
 ):
+    """Delete a product image and remove its file from storage."""
+
     repo = ProductImageRepository(session)
     service = ProductImageService(repo)
 
@@ -98,6 +106,8 @@ async def set_main_image(
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
 ):
+    """Set an image as the main image for the product."""
+
     repo = ProductImageRepository(session)
     service = ProductImageService(repo)
 
