@@ -87,3 +87,11 @@ tsconfig.tsbuildinfo
 *.njsproj
 *.sln
 *.sw?
+
+
+/static/products/
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif

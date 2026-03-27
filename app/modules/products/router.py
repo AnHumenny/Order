@@ -133,6 +133,7 @@ async def get_products(
         session: AsyncSession = Depends(get_session),
 ):
     """Get products with filtering and pagination."""
+
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -149,6 +150,7 @@ async def list_products_by_category(
         session: AsyncSession = Depends(get_session),
 ):
     """Get list of all products in selected category."""
+
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -168,6 +170,7 @@ async def count_products_by_category(
         session: AsyncSession = Depends(get_session),
 ):
     """Get count of products in a category."""
+
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -189,6 +192,7 @@ async def get_product(
         session: AsyncSession = Depends(get_session)
 ):
     """Get a specific product by ID."""
+
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -203,6 +207,7 @@ async def create_product(
         admin=Depends(get_current_admin)
 ):
     """Create product with category (only admin)."""
+
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -221,6 +226,7 @@ async def list_products(
         include_inactive: bool = Query(False)
 ):
     """List all products."""
+
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -235,6 +241,7 @@ async def delete_product(
         admin=Depends(get_current_admin),
 ):
     """Delete item by id."""
+
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -251,6 +258,7 @@ async def product_to_deactivate(
         admin=Depends(get_current_admin),
 ):
     """deactivate item by id."""
+
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -267,6 +275,7 @@ async def product_to_activate(
         admin=Depends(get_current_admin),
 ):
     """activate item by id."""
+
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
@@ -284,6 +293,7 @@ async def update_product(
         admin=Depends(get_current_admin)
 ):
     """Update product information."""
+
     service = ProductService(
         ProductRepository(session),
         CategoryRepository(session)
