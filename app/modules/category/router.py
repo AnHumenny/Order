@@ -86,6 +86,7 @@ async def create_category(
     category = await service.create_category(data)
     await session.commit()
     await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
     return category
 
 
@@ -111,6 +112,7 @@ async def create_subcategory(
     category = await service.create_category(category_data)
     await session.commit()
     await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
     return category
 
 
@@ -196,6 +198,7 @@ async def get_category(
     response_model=list[CategoryRead],
     summary="Get direct subcategories",
 )
+@cache(expire=3600, namespace="sub_menu")
 async def get_subcategories(
         category_id: int,
         session: AsyncSession = Depends(get_session),
@@ -297,6 +300,7 @@ async def update_category(
     category = await service.update_category(category_id, data)
     await session.commit()
     await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
     return category
 
 
@@ -329,6 +333,7 @@ async def delete_category(
     await service.delete_category(category_id, force)
     await session.commit()
     await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
     return {"status": "deleted"}
 
 
@@ -369,6 +374,7 @@ async def delete_subcategory(
     await service.delete_category(subcategory_id, force=False)
     await session.commit()
     await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
 
 
 @router.post(
@@ -397,6 +403,7 @@ async def move_category(
     category = await service.move_category(category_id, new_parent_id)
     await session.commit()
     await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
     return category
 
 
