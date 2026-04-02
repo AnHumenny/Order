@@ -380,3 +380,31 @@ class CategoryRepository:
             select(cte.c.id)
         )
         return [row[0] for row in result]
+
+
+    async def get_root_categories_with_full_tree(self) -> list[Category]:
+        """Get all root categories with all descendants loaded recursively."""
+
+        result = await self.session.execute(
+            select(Category)
+            .where(Category.parent_id.is_(None))
+            .order_by(Category.name)
+        )
+        roots = list(result.scalars().all())
+
+        for root in roots:
+            await self._load_all_children(root)
+
+        return roots
+
+
+    async def _load_all_children(self, category: Category, max_depth: Optional[int] = None, current_depth: int = 0):
+        """Recursively load all children for a category."""
+
+        if max_depth is not None and current_depth >= max_depth:
+            return
+
+        await self.session.refresh(category, ['children'])
+
+        for child in category.children:
+            await self._load_all_children(child, max_depth, current_depth + 1)

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "Shop API"
     DEBUG: bool = False
+    redis_url: str = "redis://localhost:6379"
     DATABASE_URL: str = Field(..., description="Database URL")
     FRONTEND_URL: str = Field(..., description="Redirect to frontend")
     REDIRECT_URL: str = Field(..., description="Base redirect URL for payments")
