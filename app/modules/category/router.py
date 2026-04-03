@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi_cache import FastAPICache
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from typing import Optional
+from fastapi_cache.decorator import cache
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
@@ -18,6 +20,41 @@ from app.modules.category.repository import CategoryRepository
 router = APIRouter(
     prefix="/categories",
 )
+
+
+@router.get(
+    "/full-tree",
+    response_model=list[CategoryTree],
+    summary="Get complete category tree for menu",
+)
+@cache(expire=3600, namespace="menu")
+async def get_complete_tree(
+        session: AsyncSession = Depends(get_session),
+):
+    """Get complete category tree for sidebar menu."""
+    repo = CategoryRepository(session)
+
+    all_categories = await repo.get_all(skip=0, limit=1000, include_hierarchy=False)
+
+    category_dict = {}
+    for cat in all_categories:
+        category_dict[cat.id] = CategoryTree(
+            id=cat.id,
+            name=cat.name,
+            parent_id=cat.parent_id,
+            children=[],
+            all_products_count=None
+        )
+
+    roots = []
+    for cat in all_categories:
+        if cat.parent_id is None:
+            roots.append(category_dict[cat.id])
+        else:
+            if cat.parent_id in category_dict:
+                category_dict[cat.parent_id].children.append(category_dict[cat.id])
+
+    return roots
 
 
 @router.post(
@@ -48,6 +85,8 @@ async def create_category(
     service = CategoryService(CategoryRepository(session))
     category = await service.create_category(data)
     await session.commit()
+    await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
     return category
 
 
@@ -72,6 +111,8 @@ async def create_subcategory(
     service = CategoryService(CategoryRepository(session))
     category = await service.create_category(category_data)
     await session.commit()
+    await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
     return category
 
 
@@ -157,6 +198,7 @@ async def get_category(
     response_model=list[CategoryRead],
     summary="Get direct subcategories",
 )
+@cache(expire=3600, namespace="sub_menu")
 async def get_subcategories(
         category_id: int,
         session: AsyncSession = Depends(get_session),
@@ -257,6 +299,8 @@ async def update_category(
     service = CategoryService(CategoryRepository(session))
     category = await service.update_category(category_id, data)
     await session.commit()
+    await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
     return category
 
 
@@ -288,6 +332,8 @@ async def delete_category(
     service = CategoryService(CategoryRepository(session))
     await service.delete_category(category_id, force)
     await session.commit()
+    await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
     return {"status": "deleted"}
 
 
@@ -327,6 +373,8 @@ async def delete_subcategory(
 
     await service.delete_category(subcategory_id, force=False)
     await session.commit()
+    await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
 
 
 @router.post(
@@ -354,6 +402,8 @@ async def move_category(
     service = CategoryService(CategoryRepository(session))
     category = await service.move_category(category_id, new_parent_id)
     await session.commit()
+    await FastAPICache.clear(namespace="menu")
+    await FastAPICache.clear(namespace="sub_menu")
     return category
 
 

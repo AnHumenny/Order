@@ -102,5 +102,6 @@ Project/
 
 ----------------------------------------------------
 ----------------------------------------------------
+### React + TypeScript + Vite
 
 [![YouTube](https://img.shields.io/badge/YouTube-Видео_обзор-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=m54kvQN_Gyw)
