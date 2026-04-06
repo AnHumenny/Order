@@ -1,5 +1,6 @@
-from sqlalchemy import ForeignKey, func, UniqueConstraint
-from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
+from typing import Optional
+from sqlalchemy import ForeignKey, func, UniqueConstraint, String
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy import Integer, DateTime
 from datetime import datetime
 
@@ -21,10 +22,16 @@ class Cart(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("users.id"),
-        nullable=False,
+        nullable=True,
         unique=True
+    )
+
+    session_id: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -33,11 +40,23 @@ class Cart(Base):
         nullable=False
     )
 
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
     items: Mapped[list["CartItem"]] = relationship(
         "CartItem",
         back_populates="cart",
         cascade="all, delete-orphan",
         lazy="joined"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_cart_user"),
+        UniqueConstraint("session_id", name="uq_cart_session"),
     )
 
 
