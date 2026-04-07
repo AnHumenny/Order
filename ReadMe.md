@@ -12,7 +12,18 @@ Project/
 │ │ └── security.py # Хеширование паролей, JWT токены
 │ │
 │ ├── modules/ # Модули приложения
-│ │ ├──admin/* # Панель управления
+│ │ ├── admin/
+│   ├── __init__.py          # Инициализация и экспорт admin
+│   ├── config.py            # Настройки админ-панели
+│   ├── views/
+│   │   ├── __init__.py
+│   │   ├── users.py         # AdminView для users модуля
+│   │   ├── products.py      # AdminView для products модуля
+│   │   ├── orders.py        # AdminView для orders модуля
+│   │   ├── categories.py    # AdminView для categories модуля
+│   │   ├── cart.py          # AdminView для cart модуля
+│   │   └── payment.py       # AdminView для payment модуля
+│   └── auth.py              # Настройка доступа к админке
 │ │ │
 │ │ ├── auth/* # Регистрация и аутентификация
 │ │ │

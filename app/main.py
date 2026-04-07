@@ -8,7 +8,7 @@ from fastapi_cache.backends.redis import RedisBackend
 
 from app.core.config import settings
 # from app.modules.admin.router import router as admin_router
-# from app.modules.auth.router import router as auth_router
+from app.modules.auth.router import router as auth_router
 from app.modules.users.router import router as users_router
 from app.modules.category.router import router as categories_router
 from app.modules.products.router import router as products_router
@@ -58,7 +58,7 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 # app.include_router(admin_router, tags=["Admin"])
-# app.include_router(auth_router, tags=["Auth"])
+app.include_router(auth_router, tags=["Auth"])
 app.include_router(users_router, tags=["Users"])
 app.include_router(categories_router, tags=["Category"])
 app.include_router(products_router, tags=["Products"])
