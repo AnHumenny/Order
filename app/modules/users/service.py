@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from starlette import status
 from app.core.security import verify_password, create_access_token
-from app.users.repository import UserRepository
+from app.modules.users.repository import UserRepository
 
 
 class UserService:

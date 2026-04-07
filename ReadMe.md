@@ -12,6 +12,10 @@ Project/
 │ │ └── security.py # Хеширование паролей, JWT токены
 │ │
 │ ├── modules/ # Модули приложения
+│ │ ├──admin/* # Панель управления
+│ │ │
+│ │ ├── auth/* # Регистрация и аутентификация
+│ │ │
 │ │ ├── analytics/ # Аналитика и статистика
 │ │ │ ├── repository.py # Запросы к БД для аналитики
 │ │ │ ├── service.py # Бизнес-логика аналитики
@@ -44,27 +48,25 @@ Project/
 │ │ │ └── router.py # Эндпоинты (/payment/...)
 │ │ │
 │ │ ├── products/ # Товары
-│ │ │ │ └──gallery/
-│ │ │ │     ├── init.py
-│ │ │ │     ├── models.py # Модели галереи
-│ │ │ │     ├── repository.py # Работа с БД
-│ │ │ │     ├── routes.py # API эндпоинты
-│ │ │ │     ├── schemas.py # Pydantic схемы
-│ │ │ │     ├── service.py # Логика продукт
-│ │ │ │     └── upload.py # Логика загрузки файлов
-│ │ │ │            
+│ │ │ ├── gallery/ # Галерея изображений
+│ │ │ │ ├── models.py # Модели галереи
+│ │ │ │ ├── repository.py # Работа с БД
+│ │ │ │ ├── routes.py # API эндпоинты
+│ │ │ │ ├── schemas.py # Pydantic схемы
+│ │ │ │ ├── service.py # Логика галереи
+│ │ │ │ └── upload.py # Логика загрузки файлов
 │ │ │ ├── schemas.py # Pydantic схемы
 │ │ │ ├── repository.py # Запросы к БД
 │ │ │ ├── service.py # Бизнес-логика
 │ │ │ └── router.py # Эндпоинты (/products/...)
-│ │ │
-│ │ └── users/ # Пользователи и авторизация
-│ │ ├── models.py # Модель пользователя
-│ │ ├── schemas.py # Pydantic схемы
-│ │ ├── repository.py # Работа с БД
-│ │ ├── service.py # Логика пользователей
-│ │ ├── dependencies.py # Зависимости (get_current_user)
-│ │ └── router.py # Эндпоинты (/users/...)
+│ │ │ 
+│ │ └── users/ # Пользователи
+│ │   ├── models.py # Модель пользователя
+│ │   ├── schemas.py # Pydantic схемы
+│ │   ├── repository.py # Работа с БД
+│ │   ├── service.py # Логика пользователей
+│ │   ├── dependencies.py # Зависимости (get_current_user)
+│ │   └── router.py # Эндпоинты (/users/...)
 │ │
 │ └── main.py # Точка входа, подключение роутеров
 │
@@ -80,7 +82,9 @@ Project/
 ```
 | Модуль | Описание | Основные эндпоинты |
 |--------|----------|-------------------|
-| **Users** | Регистрация, аутентификация, профили | `POST /users/register`, `POST /users/login`, `GET /users/me` |
+| **Admin** | Панель управления
+| **Auth** | Регистрация, аутентификация
+| **Users** | Профили | `GET /users/me` |
 | **Products** | Управление товарами | `GET /products`, `GET /products/{id}`, `POST /products` (admin) |
 | **Categories** | Категории товаров | `GET /categories`, `GET /categories/{id}/products` |
 | **Cart** | Корзина покупок | `GET /cart`, `POST /cart/add`, `DELETE /cart/remove/{item_id}` |
@@ -104,4 +108,4 @@ Project/
 ----------------------------------------------------
 ### React + TypeScript + Vite
 
-[![YouTube](https://img.shields.io/badge/YouTube-Видео_обзор-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=m54kvQN_Gyw)
+[![YouTube](https://img.shields.io/badge/YouTube-Видео_обзор-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=4XtMk9m5ymI)

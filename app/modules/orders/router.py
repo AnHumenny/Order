@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import get_current_user, get_current_admin
 from app.modules.orders.models import Order, OrderStatus
-from app.users.models import User
+from app.modules.users.models import User
 from app.modules.orders.schemas import OrderRead
 from app.modules.orders.repository import OrderRepository
 from app.modules.orders.service import OrderService, checkout_cart

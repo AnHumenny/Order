@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.core.database import get_session
 from app.core.dependencies import oauth2_scheme
 from app.core.security import decode_access_token
-from app.users.models import User
+from app.modules.users.models import User
 
 
 async def current_user(
