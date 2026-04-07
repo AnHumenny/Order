@@ -95,6 +95,5 @@ tsconfig.tsbuildinfo
 *.gif
 
 # Folders
-app/modules/users/
 app/modules/admin/
 app/modules/auth/
