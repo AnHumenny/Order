@@ -1,4 +1,3 @@
-import asyncio
 import os
 from logging.config import fileConfig
 from alembic import context
@@ -8,12 +7,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.core.database import Base
-import app.modules.cart.models
-import app.modules.products.models
-import app.users.models
-import app.modules.orders.models
-import app.modules.category.models
-
 
 config = context.config
 fileConfig(config.config_file_name)

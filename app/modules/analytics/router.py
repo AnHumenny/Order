@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
-from app.users.models import User
+from app.modules.users.models import User
 from app.modules.analytics.repository import AnalyticsRepository
 from app.modules.analytics.service import AnalyticsService
 

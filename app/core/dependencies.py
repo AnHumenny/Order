@@ -1,13 +1,16 @@
 from typing import Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_session
 from app.core.security import decode_access_token
-from app.users.models import User
+from app.modules.users.models import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
+
+from jose import JWTError
+from fastapi import HTTPException, status
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme),
@@ -32,13 +35,30 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
     try:
         payload = decode_access_token(token)
         user_id = int(payload.get("sub"))
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
+
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    except (ValueError, AttributeError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid token payload: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     result = await session.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
+
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
     return user
 
 
@@ -85,9 +105,16 @@ async def get_current_user_optional(
     try:
         payload = decode_access_token(token)
         user_id = int(payload.get("sub"))
-    except Exception:
+
+    except JWTError:
+        return None
+    except (ValueError, AttributeError, KeyError) as e:
         return None
 
     result = await session.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
+
+    if not user:
+        return None
+
     return user

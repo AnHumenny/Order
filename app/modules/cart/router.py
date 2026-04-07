@@ -8,7 +8,7 @@ from app.core.session import get_or_create_session_id
 from app.modules.cart.schemas import CartRead, CartItemRead, CartItemCreate, CartItemUpdate
 from app.modules.cart.service import CartService
 from app.modules.cart.repository import CartRepository
-from app.users.models import User
+from app.modules.users.models import User
 
 router = APIRouter(
     prefix="/cart",

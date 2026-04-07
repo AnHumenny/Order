@@ -1,7 +1,7 @@
 from typing import Optional
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.users.models import User
+from app.modules.users.models import User
 
 
 class UserRepository:
