@@ -14,3 +14,16 @@ STRIPE_WEBHOOK_SECRET= Stripe
 STRIPE_ENDPOINT_SECRET= Stripe
 
 PORT= 8000 (по дефолту, должен соответствовать порту, на котором запускается приложение, относится к обработке вебхука stripe)
+
+FRONTEND_URL=http://localhost:5173
+REDIRECT_URL=http://localhost
+
+EXPIRES_AT=10
+
+CACHE_EXPIRE_MENU=60
+CACHE_EXPIRE_SUBMENU=60
+CACHE_EXPIRE_CATEGORY_TREE=300
+
+REDIS_URL=redis://localhost:6379
+CACHE_PREFIX=fastapi-cache
+CACHE_DEFAULT_EXPIRE=60

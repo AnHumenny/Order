@@ -7,6 +7,7 @@ from fastapi_cache.decorator import cache
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
+from app.core.config import settings
 
 from app.modules.category.schemas import (
     CategoryCreate,
@@ -27,7 +28,7 @@ router = APIRouter(
     response_model=list[CategoryTree],
     summary="Get complete category tree for menu",
 )
-@cache(expire=3600, namespace="menu")
+@cache(expire=settings.CACHE_EXPIRE_MENU, namespace=settings.CACHE_NAMESPACE_MENU)
 async def get_complete_tree(
         session: AsyncSession = Depends(get_session),
 ):
@@ -85,8 +86,8 @@ async def create_category(
     service = CategoryService(CategoryRepository(session))
     category = await service.create_category(data)
     await session.commit()
-    await FastAPICache.clear(namespace="menu")
-    await FastAPICache.clear(namespace="sub_menu")
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_MENU)
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_SUBMENU)
     return category
 
 
@@ -111,8 +112,8 @@ async def create_subcategory(
     service = CategoryService(CategoryRepository(session))
     category = await service.create_category(category_data)
     await session.commit()
-    await FastAPICache.clear(namespace="menu")
-    await FastAPICache.clear(namespace="sub_menu")
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_MENU)
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_SUBMENU)
     return category
 
 
@@ -198,7 +199,7 @@ async def get_category(
     response_model=list[CategoryRead],
     summary="Get direct subcategories",
 )
-@cache(expire=3600, namespace="sub_menu")
+@cache(expire=settings.CACHE_EXPIRE_SUBMENU, namespace=settings.CACHE_NAMESPACE_SUBMENU)
 async def get_subcategories(
         category_id: int,
         session: AsyncSession = Depends(get_session),
@@ -221,6 +222,7 @@ async def get_subcategories(
     response_model=CategoryTree,
     summary="Get category tree",
 )
+@cache(expire=settings.CACHE_EXPIRE_CATEGORY_TREE, namespace=settings.CACHE_NAMESPACE_CATEGORY_TREE)
 async def get_category_tree(
         category_id: int,
         session: AsyncSession = Depends(get_session),
@@ -299,8 +301,8 @@ async def update_category(
     service = CategoryService(CategoryRepository(session))
     category = await service.update_category(category_id, data)
     await session.commit()
-    await FastAPICache.clear(namespace="menu")
-    await FastAPICache.clear(namespace="sub_menu")
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_MENU)
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_SUBMENU)
     return category
 
 
@@ -332,8 +334,8 @@ async def delete_category(
     service = CategoryService(CategoryRepository(session))
     await service.delete_category(category_id, force)
     await session.commit()
-    await FastAPICache.clear(namespace="menu")
-    await FastAPICache.clear(namespace="sub_menu")
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_MENU)
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_SUBMENU)
     return {"status": "deleted"}
 
 
@@ -373,8 +375,8 @@ async def delete_subcategory(
 
     await service.delete_category(subcategory_id, force=False)
     await session.commit()
-    await FastAPICache.clear(namespace="menu")
-    await FastAPICache.clear(namespace="sub_menu")
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_MENU)
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_SUBMENU)
 
 
 @router.post(
@@ -402,8 +404,8 @@ async def move_category(
     service = CategoryService(CategoryRepository(session))
     category = await service.move_category(category_id, new_parent_id)
     await session.commit()
-    await FastAPICache.clear(namespace="menu")
-    await FastAPICache.clear(namespace="sub_menu")
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_MENU)
+    await FastAPICache.clear(namespace=settings.CACHE_NAMESPACE_SUBMENU)
     return category
 
 
