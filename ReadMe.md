@@ -5,84 +5,105 @@
 ```
 Project/
 ├── app/
-│ ├── core/ # Ядро приложения
-│ │ ├── config.py # Конфигурация (настройки, переменные окружения)
-│ │ ├── database.py # Подключение к БД, сессии
-│ │ ├── dependencies.py # Общие зависимости (пагинация, auth)
-│ │ └── security.py # Хеширование паролей, JWT токены
-│ │
-│ ├── modules/ # Модули приложения
-│ │ ├── admin/
-│   ├── __init__.py          # Инициализация и экспорт admin
-│   ├── config.py            # Настройки админ-панели
-│   ├── views/
-│   │   ├── __init__.py
-│   │   ├── users.py         # AdminView для users модуля
-│   │   ├── products.py      # AdminView для products модуля
-│   │   ├── orders.py        # AdminView для orders модуля
-│   │   ├── categories.py    # AdminView для categories модуля
-│   │   ├── cart.py          # AdminView для cart модуля
-│   │   └── payment.py       # AdminView для payment модуля
-│   └── auth.py              # Настройка доступа к админке
-│ │ │
-│ │ ├── auth/* # Регистрация и аутентификация
-│ │ │
-│ │ ├── analytics/ # Аналитика и статистика
-│ │ │ ├── repository.py # Запросы к БД для аналитики
-│ │ │ ├── service.py # Бизнес-логика аналитики
-│ │ │ └── router.py # Эндпоинты (/analytics/...)
-│ │ │
-│ │ ├── cart/ # Корзина покупок
-│ │ │ ├── models.py # Модель корзины
-│ │ │ ├── schemas.py # Pydantic схемы
-│ │ │ ├── repository.py # Работа с БД
-│ │ │ ├── service.py # Логика корзины
-│ │ │ └── router.py # Эндпоинты (/cart/...)
-│ │ │
-│ │ ├── category/ # Категории товаров
-│ │ │ ├── models.py # Модель категории
-│ │ │ ├── schemas.py # Pydantic схемы
-│ │ │ ├── repository.py # Запросы к БД
-│ │ │ ├── services.py # Бизнес-логика
-│ │ │ └── router.py # Эндпоинты (/categories/...)
-│ │ │
-│ │ ├── orders/ # Заказы
-│ │ │ ├── models.py # Модели заказов
-│ │ │ ├── schemas.py # Pydantic схемы
-│ │ │ ├── repository.py # Работа с БД
-│ │ │ ├── service.py # Логика заказов
-│ │ │ └── router.py # Эндпоинты (/orders/...)
-│ │ │
-│ │ ├── payment/ # Платежи (Stripe)
-│ │ │ ├── stripe_client.py # Интеграция со Stripe
-│ │ │ ├── service.py # Логика платежей
-│ │ │ └── router.py # Эндпоинты (/payment/...)
-│ │ │
-│ │ ├── products/ # Товары
-│ │ │ ├── gallery/ # Галерея изображений
-│ │ │ │ ├── models.py # Модели галереи
-│ │ │ │ ├── repository.py # Работа с БД
-│ │ │ │ ├── routes.py # API эндпоинты
-│ │ │ │ ├── schemas.py # Pydantic схемы
-│ │ │ │ ├── service.py # Логика галереи
-│ │ │ │ └── upload.py # Логика загрузки файлов
-│ │ │ ├── schemas.py # Pydantic схемы
-│ │ │ ├── repository.py # Запросы к БД
-│ │ │ ├── service.py # Бизнес-логика
-│ │ │ └── router.py # Эндпоинты (/products/...)
-│ │ │ 
-│ │ └── users/ # Пользователи
-│ │   ├── models.py # Модель пользователя
-│ │   ├── schemas.py # Pydantic схемы
-│ │   ├── repository.py # Работа с БД
-│ │   ├── service.py # Логика пользователей
-│ │   ├── dependencies.py # Зависимости (get_current_user)
-│ │   └── router.py # Эндпоинты (/users/...)
-│ │
-│ └── main.py # Точка входа, подключение роутеров
+│   ├── core/                              # Ядро приложения
+│   │   ├── config.py                      # Конфигурация (настройки, переменные окружения)
+│   │   ├── database.py                    # Подключение к БД, сессии
+│   │   ├── dependencies.py                # Общие зависимости (пагинация, auth)
+│   │   └── security.py                    # Хеширование паролей, JWT токены
+│   │
+│   ├── modules/                           # Модули приложения (функциональные блоки)
+│   │   │
+│   │   ├── admin/                         # Административная панель
+│   │   │   ├── __init__.py                # Инициализация и экспорт admin
+│   │   │   ├── config.py                  # Настройки админ-панели
+│   │   │   ├── auth.py                    # Настройка доступа к админке
+│   │   │   └── views/                     # Представления для разных моделей
+│   │   │       ├── __init__.py
+│   │   │       ├── users.py               # AdminView для пользователей
+│   │   │       ├── products.py            # AdminView для товаров
+│   │   │       ├── orders.py              # AdminView для заказов
+│   │   │       ├── categories.py          # AdminView для категорий
+│   │   │       └── dashboard.py           # AdminView дашбоард
+│   │   │
+│   │   ├── analytics/                     # Аналитика и статистика
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py                  # Модели аналитики
+│   │   │   ├── schemas.py                 # Pydantic схемы
+│   │   │   ├── repository.py              # Запросы к БД для аналитики
+│   │   │   ├── service.py                 # Бизнес-логика аналитики
+│   │   │   └── router.py                  # Эндпоинты (/analytics/...)
+│   │   │
+│   │   ├── auth/                          # Аутентификация и пользователи
+│   │   │   ├── __init__.py                # Инициализация модуля, экспорт роутера
+│   │   │   ├── models.py                  # SQLAlchemy модели (User)
+│   │   │   ├── schemas.py                 # Pydantic схемы для валидации
+│   │   │   ├── repository.py              # CRUD-операции с БД
+│   │   │   ├── service.py                 # Бизнес-логика (регистрация, логин)
+│   │   │   ├── router.py                  # FastAPI эндпоинты
+│   │   │   └── dependencies.py            # Зависимости (get_current_user)
+│   │   │
+│   │   ├── cart/                          # Корзина покупок
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py                  # Модель корзины
+│   │   │   ├── schemas.py                 # Pydantic схемы
+│   │   │   ├── repository.py              # Работа с БД
+│   │   │   ├── service.py                 # Логика корзины
+│   │   │   └── router.py                  # Эндпоинты (/cart/...)
+│   │   │
+│   │   ├── category/                      # Категории товаров
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py                  # Модель категории
+│   │   │   ├── schemas.py                 # Pydantic схемы
+│   │   │   ├── repository.py              # Запросы к БД
+│   │   │   ├── service.py                 # Бизнес-логика
+│   │   │   └── router.py                  # Эндпоинты (/categories/...)
+│   │   │
+│   │   ├── orders/                        # Заказы
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py                  # Модели заказов
+│   │   │   ├── schemas.py                 # Pydantic схемы
+│   │   │   ├── repository.py              # Работа с БД
+│   │   │   ├── service.py                 # Логика заказов
+│   │   │   └── router.py                  # Эндпоинты (/orders/...)
+│   │   │
+│   │   ├── payment/                       # Платежи (Stripe)
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py                  # Модели платежей
+│   │   │   ├── schemas.py                 # Pydantic схемы
+│   │   │   ├── repository.py              # Работа с БД
+│   │   │   ├── service.py                 # Логика платежей
+│   │   │   ├── router.py                  # Эндпоинты (/payment/...)
+│   │   │   └── stripe_client.py           # Интеграция со Stripe
+│   │   │
+│   │   ├── products/                      # Товары
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py                  # Модели товаров
+│   │   │   ├── schemas.py                 # Pydantic схемы
+│   │   │   ├── repository.py              # Запросы к БД
+│   │   │   ├── service.py                 # Бизнес-логика
+│   │   │   ├── router.py                  # Эндпоинты (/products/...)
+│   │   │   └── gallery/                   # Галерея изображений
+│   │   │       ├── __init__.py
+│   │   │       ├── models.py              # Модели галереи
+│   │   │       ├── schemas.py             # Pydantic схемы
+│   │   │       ├── repository.py          # Работа с БД
+│   │   │       ├── service.py             # Логика галереи
+│   │   │       ├── router.py              # API эндпоинты
+│   │   │       └── upload.py              # Логика загрузки файлов
+│   │   │
+│   │   └── users/                         # Пользователи (расширенный профиль)
+│   │       ├── __init__.py
+│   │       ├── models.py                  # Модель пользователя
+│   │       ├── schemas.py                 # Pydantic схемы
+│   │       ├── repository.py              # Работа с БД
+│   │       ├── service.py                 # Логика пользователей
+│   │       ├── dependencies.py            # Зависимости (get_current_user)
+│   │       └── router.py                  # Эндпоинты (/users/...)
+│   │
+│   └── main.py                            # Точка входа, подключение роутеров
 │
-├── alembic/ # Миграции БД
-├── .env # Переменные окружения
+├── alembic/                               # Миграции БД
+├── .env                                   # Переменные окружения
 ├── .gitignore
 ├── alembic.ini
 └── requirements.txt
@@ -93,9 +114,9 @@ Project/
 ```
 | Модуль | Описание | Основные эндпоинты |
 |--------|----------|-------------------|
-| **Admin** | Панель управления
-| **Auth** | Регистрация, аутентификация
-| **Users** | Профили | `GET /users/me` |
+| **Admin** | Панель управления |
+| **Auth** | Модель пользователя, регистрация, обновление, удаление пользвоателя |
+| **Users** | Профили | Аутентификация, текущий пользователь | `GET /users/me` |
 | **Products** | Управление товарами | `GET /products`, `GET /products/{id}`, `POST /products` (admin) |
 | **Categories** | Категории товаров | `GET /categories`, `GET /categories/{id}/products` |
 | **Cart** | Корзина покупок | `GET /cart`, `POST /cart/add`, `DELETE /cart/remove/{item_id}` |
