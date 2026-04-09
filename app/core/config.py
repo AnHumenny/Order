@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str  #STRIPE_WEBHOOK_SECRET: str = Field(..., description="Stripe webhook")
     SECRET_KEY: str = Field(..., description="Secret key for JWT signing")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 600
+    CACHE_EXPIRE_MENU: int = 60
+    CACHE_EXPIRE_SUBMENU: int = 60
+    CACHE_EXPIRE_CATEGORY_TREE: int = 300
+    REDIS_URL: str = "redis://localhost:6379"
+    CACHE_PREFIX: str = "fastapi-cache"
+    CACHE_DEFAULT_EXPIRE: int = 60
     ALGORITHM: str = "HS256"
     ALLOWED_ORIGINS: str = Field(..., description="Comma-separated list of allowed CORS origins")
     EXPIRES_AT: str = Field(..., description="Payment session Timeout")
@@ -54,6 +60,18 @@ class Settings(BaseSettings):
     def get_frontend_cancel_url(self) -> str:
         """Get URL for payment cancellation"""
         return f"{self.get_frontend_url()}/cancel"
+
+    @property
+    def CACHE_NAMESPACE_MENU(self) -> str:
+        return "menu"
+
+    @property
+    def CACHE_NAMESPACE_SUBMENU(self) -> str:
+        return "sub_menu"
+
+    @property
+    def CACHE_NAMESPACE_CATEGORY_TREE(self) -> str:
+        return "category_tree"
 
 
     class Config:

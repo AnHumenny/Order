@@ -6,6 +6,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.modules.auth.models import User
 
 class OrderStatus(str, enum.Enum):
     """Order statuses in the system.
@@ -48,7 +51,7 @@ class Order(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -83,6 +86,12 @@ class Order(Base):
 
     checkout_session_id = mapped_column(String, nullable=True, unique=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="orders",
+        lazy="joined"
+    )
 
 
 class OrderItem(Base):

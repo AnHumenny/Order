@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from redis import asyncio as redis
@@ -7,8 +8,8 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 
 from app.core.config import settings
-# from app.modules.admin.router import router as admin_router
-# from app.modules.auth.router import router as auth_router
+from app.modules.admin import admin
+from app.modules.auth.router import router as auth_router
 from app.modules.users.router import router as users_router
 from app.modules.category.router import router as categories_router
 from app.modules.products.router import router as products_router
@@ -27,18 +28,19 @@ frontend_url = os.getenv("FRONTEND_URL")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis_client = redis.from_url(
-        os.getenv("REDIS_URL", "redis://localhost:6379"),
+        settings.REDIS_URL,
         encoding="utf8",
         decode_responses=True
     )
 
     FastAPICache.init(
         RedisBackend(redis_client),
-        prefix="fastapi-cache",
-        expire=3600
+        prefix=settings.CACHE_PREFIX,
+        expire=settings.CACHE_DEFAULT_EXPIRE
     )
     yield
     await redis_client.close()
+
 
 
 app = FastAPI(
@@ -56,9 +58,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,
+    session_cookie="admin_session",
+    max_age=3600 * 24,
+    same_site="lax",
+    https_only=False,
+)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
-# app.include_router(admin_router, tags=["Admin"])
-# app.include_router(auth_router, tags=["Auth"])
+
+app.include_router(auth_router, tags=["Auth"])
 app.include_router(users_router, tags=["Users"])
 app.include_router(categories_router, tags=["Category"])
 app.include_router(products_router, tags=["Products"])
@@ -67,3 +78,5 @@ app.include_router(cart_router, tags=["Cart"])
 app.include_router(orders_router, tags=["Orders"])
 app.include_router(analytics_router, tags=["Analytics"])
 app.include_router(payment_router, tags=["Stripe"])
+
+admin.mount_to(app)

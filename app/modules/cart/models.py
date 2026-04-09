@@ -23,9 +23,9 @@ class Cart(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     user_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete = 'CASCADE'),
         nullable=True,
-        unique=True
+        unique=True,
     )
 
     session_id: Mapped[Optional[str]] = mapped_column(
@@ -76,12 +76,12 @@ class CartItem(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     cart_id: Mapped[int] = mapped_column(
-        ForeignKey("carts.id"),
+        ForeignKey("carts.id", ondelete="CASCADE"),
         nullable=False
     )
 
     product_id: Mapped[int] = mapped_column(
-        ForeignKey("products.id"),
+        ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False
     )
 
