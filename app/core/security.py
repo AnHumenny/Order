@@ -1,10 +1,15 @@
 import bcrypt
 import hashlib
 from dotenv import load_dotenv
+from fastapi import HTTPException
+from jose import ExpiredSignatureError
+from jwt import InvalidTokenError
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import jwt
 import os
+from starlette import status
+
 load_dotenv()
 
 
@@ -57,9 +62,9 @@ def create_access_token(data: dict, expires_delta: int | None = None) -> str:
     """
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + timedelta(minutes=expires_delta) # поправить
+        expire = datetime.now() + timedelta(minutes=expires_delta)
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)   # поправить
+        expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -76,4 +81,17 @@ def decode_access_token(token: str) -> dict:
     Raises:
         JWTError: If token is invalid or expired
     """
-    return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

@@ -6,8 +6,8 @@ from contextlib import asynccontextmanager
 from redis import asyncio as redis
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-
 from app.core.config import settings
+from app.core.rate_limiter import setup_rate_limiter
 from app.modules.admin import admin
 from app.modules.auth.router import router as auth_router
 from app.modules.users.router import router as users_router
@@ -67,6 +67,7 @@ app.add_middleware(
     https_only=False,
 )
 
+setup_rate_limiter(app)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(auth_router, tags=["Auth"])
