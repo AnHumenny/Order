@@ -81,10 +81,12 @@ else:
 
 
 class RateLimits:
+    REGISTER = "100/minute"
     AUTH = "5/minute"
     WRITE = "30/minute"
     READ = "100/minute"
-
+    ANALYTICS = "30/minute"
+    UPLOAD = "20/minute"
 
 def setup_rate_limiter(app):
     """Setting up a rate limiter for the application"""

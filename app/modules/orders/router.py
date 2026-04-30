@@ -3,13 +3,14 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import get_current_user, get_current_admin
+from app.core.rate_limiter import limiter, RateLimits
 from app.modules.orders.models import Order, OrderStatus
 from app.modules.users.models import User
 from app.modules.orders.schemas import OrderRead
 from app.modules.orders.repository import OrderRepository
 from app.modules.orders.service import OrderService, checkout_cart
 from app.modules.cart.repository import CartRepository
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 
 router = APIRouter(
@@ -19,7 +20,9 @@ router = APIRouter(
 
 
 @router.post("/from-cart", response_model=OrderRead)
+@limiter.limit(RateLimits.WRITE)
 async def create_order(
+    request: Request,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -53,7 +56,9 @@ async def create_order(
 
 
 @router.post("/checkout")
+@limiter.limit(RateLimits.WRITE)
 async def checkout(
+    request: Request,
     db: AsyncSession = Depends(get_session),
     user=Depends(get_current_user),
 ):
@@ -69,7 +74,9 @@ async def checkout(
 
 
 @router.delete("/my")
+@limiter.limit(RateLimits.WRITE)
 async def delete_my_pending_orders(
+    request: Request,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     admin = Depends(get_current_admin),

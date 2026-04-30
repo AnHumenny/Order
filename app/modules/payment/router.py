@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import stripe
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_session
+from app.core.rate_limiter import limiter, RateLimits
 from app.modules.payment.service import (
     create_checkout_session_service,
     process_payment_cancel,
@@ -16,7 +17,8 @@ router = APIRouter(
 )
 
 @router.post("/create-checkout-session")
-async def create_checkout_session(user=Depends(get_current_user),
+@limiter.limit(RateLimits.READ)
+async def create_checkout_session(request: Request, user=Depends(get_current_user),
                                   session: AsyncSession = Depends(get_session)):
     """Create a Stripe Checkout Session for the current user.
 
@@ -30,12 +32,14 @@ async def create_checkout_session(user=Depends(get_current_user),
 
 
 @router.get("/cancel")
-async def payment_cancel():
+@limiter.limit(RateLimits.READ)
+async def payment_cancel(request: Request):
     """Redirect user to cart page after cancelling Stripe Checkout payment."""
     return await process_payment_cancel()
 
 
 @router.post("/")
+@limiter.limit(RateLimits.READ)
 async def stripe_webhook(request: Request, session: AsyncSession = Depends(get_session)):
     """Handle Stripe payment webhook events.
 
@@ -58,7 +62,8 @@ async def stripe_webhook(request: Request, session: AsyncSession = Depends(get_s
 
 
 @router.get("/status")
-async def order_status(order_id: int, session: AsyncSession = Depends(get_session)):
+@limiter.limit(RateLimits.READ)
+async def order_status(request: Request, order_id: int, session: AsyncSession = Depends(get_session)):
     """Get the current status of an order.
 
     Used by frontend to poll for payment confirmation after Stripe redirect.

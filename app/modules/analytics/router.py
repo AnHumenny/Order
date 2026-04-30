@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.rate_limiter import limiter, RateLimits
 from app.modules.users.models import User
 from app.modules.analytics.repository import AnalyticsRepository
 from app.modules.analytics.service import AnalyticsService
@@ -16,7 +17,9 @@ async def get_analytics_service(session: AsyncSession = Depends(get_session)) ->
 
 
 @router.get("/user-purchases")
+@limiter.limit(RateLimits.ANALYTICS)
 async def get_user_purchase_analytics(
+        request: Request,
         current_user: User = Depends(get_current_user),
         service: AnalyticsService = Depends(get_analytics_service)
 ):
@@ -25,7 +28,9 @@ async def get_user_purchase_analytics(
 
 
 @router.get("/user-stats")
+@limiter.limit(RateLimits.ANALYTICS)
 async def get_user_stats(
+        request: Request,
         current_user: User = Depends(get_current_user),
         service: AnalyticsService = Depends(get_analytics_service)
 ):

@@ -1,8 +1,9 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
+from app.core.rate_limiter import limiter, RateLimits
 from app.modules.products.gallery.repository import ProductImageRepository
 from app.modules.products.gallery.service import ProductImageService
 from app.modules.products.gallery.schemas import ProductImageRead, ProductImageUpdate
@@ -13,7 +14,9 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[ProductImageRead])
+@limiter.limit(RateLimits.READ)
 async def get_product_images(
+        request: Request,
         product_id: int,
         session: AsyncSession = Depends(get_session)
 ):
@@ -25,7 +28,9 @@ async def get_product_images(
 
 
 @router.post("/upload", response_model=ProductImageRead, status_code=status.HTTP_201_CREATED) # добавить thumbnails
+@limiter.limit(RateLimits.UPLOAD)
 async def upload_product_image(
+        request: Request,
         product_id: int,
         file: UploadFile = File(...),
         is_main: bool = Form(False),
@@ -60,7 +65,9 @@ async def upload_product_image(
 
 
 @router.patch("/{image_id}", response_model=ProductImageRead)
+@limiter.limit(RateLimits.UPLOAD)
 async def update_product_image(
+        request: Request,
         product_id: int,
         image_id: int,
         image_data: ProductImageUpdate,
@@ -81,7 +88,9 @@ async def update_product_image(
 
 
 @router.delete("/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit(RateLimits.WRITE)
 async def delete_product_image(
+        request: Request,
         product_id: int,
         image_id: int,
         session: AsyncSession = Depends(get_session),
@@ -100,7 +109,9 @@ async def delete_product_image(
 
 
 @router.post("/{image_id}/set-main", response_model=ProductImageRead)
+@limiter.limit(RateLimits.WRITE)
 async def set_main_image(
+        request: Request,
         product_id: int,
         image_id: int,
         session: AsyncSession = Depends(get_session),
