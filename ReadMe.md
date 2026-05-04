@@ -1,143 +1,151 @@
-## Структура модуля
+----------------------------------------------------
+----------------------------------------------------
+### React + TypeScript + Vite
+[![YouTube](https://img.shields.io/badge/YouTube-Video_rewiev-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=4XtMk9m5ymI)
+----------------------------------------------------
+----------------------------------------------------
+
+## Project Structure
 
 ### backend
 
 ```
 Project/
 ├── app/
-│   ├── core/                              # Ядро приложения
-│   │   ├── config.py                      # Конфигурация (настройки, переменные окружения)
-│   │   ├── database.py                    # Подключение к БД, сессии
-│   │   ├── dependencies.py                # Общие зависимости (пагинация, auth)
-│   │   └── security.py                    # Хеширование паролей, JWT токены
+│   ├── core/                              # Application core
+│   │   ├── config.py                      # Configuration (settings, environment variables)
+│   │   ├── database.py                    # Database connection, sessions
+│   │   ├── dependencies.py                # Common dependencies (pagination, auth)
+│   │   ├── rate_limiter.py                # Rate-limiting for endpoints
+│   │   ├── security.py                    # Password hashing, JWT tokens
+│   │   └── session.py                     # Session cookies
 │   │
-│   ├── modules/                           # Модули приложения (функциональные блоки)
-│   │   │
-│   │   ├── admin/                         # Административная панель
-│   │   │   ├── __init__.py                # Инициализация и экспорт admin
-│   │   │   ├── config.py                  # Настройки админ-панели
-│   │   │   ├── auth.py                    # Настройка доступа к админке
-│   │   │   └── views/                     # Представления для разных моделей
+│   ├── modules/                           # Application modules (functional blocks)
+│   │   ├── admin/                         # Admin panel
+│   │   │   ├── __init__.py                # Admin initialization and export
+│   │   │   ├── config.py                  # Admin panel settings
+│   │   │   ├── auth.py                    # Admin access configuration
+│   │   │   └── views/                     # Views for different models
 │   │   │       ├── __init__.py
-│   │   │       ├── users.py               # AdminView для пользователей
-│   │   │       ├── products.py            # AdminView для товаров
-│   │   │       ├── orders.py              # AdminView для заказов
-│   │   │       ├── categories.py          # AdminView для категорий
-│   │   │       └── dashboard.py           # AdminView дашбоард
+│   │   │       ├── users.py               # AdminView for users
+│   │   │       ├── products.py            # AdminView for products
+│   │   │       ├── orders.py              # AdminView for orders
+│   │   │       ├── categories.py          # AdminView for categories
+│   │   │       └── dashboard.py           # AdminView dashboard
 │   │   │
-│   │   ├── analytics/                     # Аналитика и статистика
+│   │   ├── analytics/                     # Analytics and statistics
 │   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Модели аналитики
-│   │   │   ├── schemas.py                 # Pydantic схемы
-│   │   │   ├── repository.py              # Запросы к БД для аналитики
-│   │   │   ├── service.py                 # Бизнес-логика аналитики
-│   │   │   └── router.py                  # Эндпоинты (/analytics/...)
+│   │   │   ├── models.py                  # Analytics models
+│   │   │   ├── schemas.py                 # Pydantic schemas
+│   │   │   ├── repository.py              # Database queries for analytics
+│   │   │   ├── service.py                 # Analytics business logic
+│   │   │   └── router.py                  # Endpoints (/analytics/...)
 │   │   │
-│   │   ├── auth/                          # Аутентификация и пользователи
-│   │   │   ├── __init__.py                # Инициализация модуля, экспорт роутера
-│   │   │   ├── models.py                  # SQLAlchemy модели (User)
-│   │   │   ├── schemas.py                 # Pydantic схемы для валидации
-│   │   │   ├── repository.py              # CRUD-операции с БД
-│   │   │   ├── service.py                 # Бизнес-логика (регистрация, логин)
-│   │   │   ├── router.py                  # FastAPI эндпоинты
-│   │   │   └── dependencies.py            # Зависимости (get_current_user)
+│   │   ├── auth/                          # Authentication and users
+│   │   │   ├── __init__.py                # Module initialization, router export
+│   │   │   ├── models.py                  # SQLAlchemy models (User)
+│   │   │   ├── schemas.py                 # Pydantic schemas for validation
+│   │   │   ├── repository.py              # CRUD operations with database
+│   │   │   ├── service.py                 # Business logic (registration, login)
+│   │   │   ├── router.py                  # FastAPI endpoints
+│   │   │   └── dependencies.py            # Dependencies (get_current_user)
 │   │   │
-│   │   ├── cart/                          # Корзина покупок
+│   │   ├── cart/                          # Shopping cart
 │   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Модель корзины
-│   │   │   ├── schemas.py                 # Pydantic схемы
-│   │   │   ├── repository.py              # Работа с БД
-│   │   │   ├── service.py                 # Логика корзины
-│   │   │   └── router.py                  # Эндпоинты (/cart/...)
+│   │   │   ├── models.py                  # Cart model
+│   │   │   ├── schemas.py                 # Pydantic schemas
+│   │   │   ├── repository.py              # Database operations
+│   │   │   ├── service.py                 # Cart logic
+│   │   │   └── router.py                  # Endpoints (/cart/...)
 │   │   │
-│   │   ├── category/                      # Категории товаров
+│   │   ├── category/                      # Product categories
 │   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Модель категории
-│   │   │   ├── schemas.py                 # Pydantic схемы
-│   │   │   ├── repository.py              # Запросы к БД
-│   │   │   ├── service.py                 # Бизнес-логика
-│   │   │   └── router.py                  # Эндпоинты (/categories/...)
+│   │   │   ├── models.py                  # Category model
+│   │   │   ├── schemas.py                 # Pydantic schemas
+│   │   │   ├── repository.py              # Database queries
+│   │   │   ├── service.py                 # Business logic
+│   │   │   └── router.py                  # Endpoints (/categories/...)
 │   │   │
-│   │   ├── orders/                        # Заказы
-│   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Модели заказов
-│   │   │   ├── schemas.py                 # Pydantic схемы
-│   │   │   ├── repository.py              # Работа с БД
-│   │   │   ├── service.py                 # Логика заказов
-│   │   │   └── router.py                  # Эндпоинты (/orders/...)
+│   │   ├── currency/*                     # Multi-currency payments
 │   │   │
-│   │   ├── payment/                       # Платежи (Stripe)
+│   │   ├── orders/                        # Orders
 │   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Модели платежей
-│   │   │   ├── schemas.py                 # Pydantic схемы
-│   │   │   ├── repository.py              # Работа с БД
-│   │   │   ├── service.py                 # Логика платежей
-│   │   │   ├── router.py                  # Эндпоинты (/payment/...)
-│   │   │   └── stripe_client.py           # Интеграция со Stripe
+│   │   │   ├── models.py                  # Order models
+│   │   │   ├── schemas.py                 # Pydantic schemas
+│   │   │   ├── repository.py              # Database operations
+│   │   │   ├── service.py                 # Order logic
+│   │   │   └── router.py                  # Endpoints (/orders/...)
 │   │   │
-│   │   ├── products/                      # Товары
+│   │   ├── payment/                       # Payments (Stripe)
 │   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Модели товаров
-│   │   │   ├── schemas.py                 # Pydantic схемы
-│   │   │   ├── repository.py              # Запросы к БД
-│   │   │   ├── service.py                 # Бизнес-логика
-│   │   │   ├── router.py                  # Эндпоинты (/products/...)
-│   │   │   └── gallery/                   # Галерея изображений
+│   │   │   ├── models.py                  # Payment models
+│   │   │   ├── schemas.py                 # Pydantic schemas
+│   │   │   ├── repository.py              # Database operations
+│   │   │   ├── service.py                 # Payment logic
+│   │   │   ├── router.py                  # Endpoints (/payment/...)
+│   │   │   └── stripe_client.py           # Stripe integration
+│   │   │
+│   │   ├── products/                      # Products
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py                  # Product models
+│   │   │   ├── schemas.py                 # Pydantic schemas
+│   │   │   ├── repository.py              # Database queries
+│   │   │   ├── service.py                 # Business logic
+│   │   │   ├── router.py                  # Endpoints (/products/...)
+│   │   │   └── gallery/                   # Image gallery
 │   │   │       ├── __init__.py
-│   │   │       ├── models.py              # Модели галереи
-│   │   │       ├── schemas.py             # Pydantic схемы
-│   │   │       ├── repository.py          # Работа с БД
-│   │   │       ├── service.py             # Логика галереи
-│   │   │       ├── router.py              # API эндпоинты
-│   │   │       └── upload.py              # Логика загрузки файлов
+│   │   │       ├── models.py              # Gallery models
+│   │   │       ├── schemas.py             # Pydantic schemas
+│   │   │       ├── repository.py          # Database operations
+│   │   │       ├── service.py             # Gallery logic
+│   │   │       ├── router.py              # API endpoints
+│   │   │       └── upload.py              # File upload logic
 │   │   │
-│   │   └── users/                         # Пользователи (расширенный профиль)
+│   │   └── users/                         # Users (extended profile)
 │   │       ├── __init__.py
-│   │       ├── models.py                  # Модель пользователя
-│   │       ├── schemas.py                 # Pydantic схемы
-│   │       ├── repository.py              # Работа с БД
-│   │       ├── service.py                 # Логика пользователей
-│   │       ├── dependencies.py            # Зависимости (get_current_user)
-│   │       └── router.py                  # Эндпоинты (/users/...)
+│   │       ├── models.py                  # User model
+│   │       ├── schemas.py                 # Pydantic schemas
+│   │       ├── repository.py              # Database operations
+│   │       ├── service.py                 # User logic
+│   │       ├── dependencies.py            # Dependencies (get_current_user)
+│   │       └── router.py                  # Endpoints (/users/...)
 │   │
-│   └── main.py                            # Точка входа, подключение роутеров
+│   └── main.py                            # Entry point, router registration
 │
-├── alembic/                               # Миграции БД
-├── .env                                   # Переменные окружения
+├── static/ 
+│      └── gallery/                        # Photogallery        
+│
+├── alembic/                               # Database migrations
+├── .env                                   # Environment variables
+├── env_example                            # Example of environment variables
 ├── .gitignore
 ├── alembic.ini
 └── requirements.txt
 ```
 
-### Функционал
+### Features
 
 ```
-| Модуль | Описание | Основные эндпоинты |
-|--------|----------|-------------------|
-| **Admin** | Панель управления |
-| **Auth** | Модель пользователя, регистрация, обновление, удаление пользвоателя |
-| **Users** | Профили | Аутентификация, текущий пользователь | `GET /users/me` |
-| **Products** | Управление товарами | `GET /products`, `GET /products/{id}`, `POST /products` (admin) |
-| **Categories** | Категории товаров | `GET /categories`, `GET /categories/{id}/products` |
-| **Cart** | Корзина покупок | `GET /cart`, `POST /cart/add`, `DELETE /cart/remove/{item_id}` |
-| **Orders** | Оформление и история заказов | `POST /orders`, `GET /orders`, `GET /orders/{id}` |
-| **Payment** | Интеграция со Stripe | `POST /payment/create-checkout-session`, `POST /payment/webhook` |
-| **Analytics** | Статистика покупок | `GET /analytics/user-purchases`, `GET /analytics/user-stats` |
+| Module          |	Description                 |  Endpoints
+|-----------------|-----------------------------|-------------------------------------------------------------|
+| **Admin**       | Control panel               | *:8000/admin/
+| **Auth**        | User model                  | registration, list of users, delete user	
+| **Users**       | Authentication, current user| authorization, current user
+| **Products**    | Product management	        | GET /products, GET /products/{id}, POST /products (admin)...
+| **Categories**  | Product categories	        | GET /categories, GET /categories/{id}/products...
+| **Cart**        | Shopping cart               | GET /cart, POST /cart/add, DELETE /cart/remove/{item_id}...
+| **Orders**      | Checkout and order history  | POST /orders, GET /orders, GET /orders/{id}...
+| **Payment**     | Stripe integration          | POST /payment/create-checkout-session, POST /payment/webhook
+| **Analytics **  | Purchase statistics	        | GET /analytics/user-purchases, GET /analytics/user-stats
 ```
 
-### Технологии
+### Technologies
 ```
-- **FastAPI** — веб-фреймворк
-- **PostgreSQL** — база данных
+- **FastAPI** — web framework
+- **PostgreSQL** — database
 - **SQLAlchemy 2.0** — ORM
-- **Alembic** — миграции
-- **JWT** — аутентификация
-- **Stripe** — платежи
-- **Pydantic** — валидация данных
+- **Alembic** — migrations
+- **JWT** — authentication
+- **Stripe** — payments
+- **Pydantic** — data validation
 ```
-
-----------------------------------------------------
-----------------------------------------------------
-### React + TypeScript + Vite
-
-[![YouTube](https://img.shields.io/badge/YouTube-Видео_обзор-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=4XtMk9m5ymI)
