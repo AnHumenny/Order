@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.rate_limiter import limiter, RateLimits
 from app.modules.users.models import User
 from app.modules.auth.repository import UserRepository
 from app.modules.auth.schemas import UserRead, Token
@@ -15,7 +16,9 @@ router = APIRouter(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit(RateLimits.AUTH)
 async def login(
+        request: Request,
         form_data: OAuth2PasswordRequestForm = Depends(),
         session: AsyncSession = Depends(get_session)
 ):
@@ -40,7 +43,8 @@ async def login(
 
 
 @router.get("/me", response_model=UserRead)
-async def get_current_user_info(user: User = Depends(get_current_user)):
+@limiter.limit(RateLimits.READ)
+async def get_current_user_info(request: Request, user: User = Depends(get_current_user)):
     """Get current authenticated user's information.
 
     Returns the profile of the user identified by the JWT token.

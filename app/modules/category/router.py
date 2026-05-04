@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from fastapi_cache import FastAPICache
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -8,6 +8,7 @@ from fastapi_cache.decorator import cache
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
 from app.core.config import settings
+from app.core.rate_limiter import limiter, RateLimits
 
 from app.modules.category.schemas import (
     CategoryCreate,
@@ -33,6 +34,7 @@ async def get_complete_tree(
         session: AsyncSession = Depends(get_session),
 ):
     """Get complete category tree for sidebar menu."""
+
     repo = CategoryRepository(session)
 
     all_categories = await repo.get_all(skip=0, limit=1000, include_hierarchy=False)
@@ -64,7 +66,9 @@ async def get_complete_tree(
     status_code=status.HTTP_201_CREATED,
     summary="Create category",
 )
+@limiter.limit(RateLimits.WRITE)
 async def create_category(
+        request: Request,
         data: CategoryCreate,
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin),
@@ -97,13 +101,16 @@ async def create_category(
     status_code=status.HTTP_201_CREATED,
     summary="Create subcategory",
 )
+@limiter.limit(RateLimits.WRITE)
 async def create_subcategory(
+        request: Request,
         parent_id: int,
         data: SubcategoryCreate,
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin),
 ):
     """Create a new subcategory under a parent category."""
+
     category_data = CategoryCreate(
         name=data.name,
         parent_id=parent_id
@@ -122,7 +129,9 @@ async def create_subcategory(
     response_model=list[CategoryRead],
     summary="Get all categories",
 )
+@limiter.limit(RateLimits.READ)
 async def list_categories(
+        request: Request,
         session: AsyncSession = Depends(get_session),
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=1000),
@@ -152,7 +161,9 @@ async def list_categories(
     response_model=list[CategoryRead],
     summary="Get root categories",
 )
+@limiter.limit(RateLimits.READ)
 async def get_root_categories(
+        request: Request,
         session: AsyncSession = Depends(get_session),
 ):
     """Get all root categories (categories without a parent).
@@ -160,6 +171,7 @@ async def get_root_categories(
     Returns:
         list[CategoryRead]: List of root categories
     """
+
     service = CategoryService(CategoryRepository(session))
     return await service.get_root_categories()
 
@@ -169,7 +181,9 @@ async def get_root_categories(
     response_model=CategoryRead,
     summary="Get category by ID",
 )
+@limiter.limit(RateLimits.READ)
 async def get_category(
+        request: Request,
         category_id: int,
         session: AsyncSession = Depends(get_session),
         include_children: bool = Query(False, description="Include subcategories"),
@@ -184,6 +198,7 @@ async def get_category(
     Returns:
         CategoryRead: Category details
     """
+
     service = CategoryService(CategoryRepository(session))
     category = await service.get_category_by_id(category_id, include_children)
     if not category:
@@ -253,7 +268,9 @@ async def get_category_tree(
     response_model=list[CategoryRead],
     summary="Get category path",
 )
+@limiter.limit(RateLimits.READ)
 async def get_category_path(
+        request: Request,
         category_id: int,
         session: AsyncSession = Depends(get_session),
 ):
@@ -266,6 +283,7 @@ async def get_category_path(
     Returns:
         list[CategoryRead]: List of categories from root to the specified category
     """
+
     service = CategoryService(CategoryRepository(session))
     path = await service.get_category_path(category_id)
     if not path:
@@ -281,7 +299,9 @@ async def get_category_path(
     response_model=CategoryRead,
     summary="Update category",
 )
+@limiter.limit(RateLimits.WRITE)
 async def update_category(
+        request: Request,
         category_id: int,
         data: CategoryUpdate,
         session: AsyncSession = Depends(get_session),
@@ -298,6 +318,7 @@ async def update_category(
     Returns:
         CategoryRead: Updated category
     """
+
     service = CategoryService(CategoryRepository(session))
     category = await service.update_category(category_id, data)
     await session.commit()
@@ -310,7 +331,9 @@ async def update_category(
     "/{category_id}",
     summary="Delete category",
 )
+@limiter.limit(RateLimits.WRITE)
 async def delete_category(
+        request: Request,
         category_id: int,
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin),
@@ -344,7 +367,9 @@ async def delete_category(
     summary="Delete subcategory",
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@limiter.limit(RateLimits.WRITE)
 async def delete_subcategory(
+        request: Request,
         category_id: int,
         subcategory_id: int,
         session: AsyncSession = Depends(get_session),
@@ -364,6 +389,7 @@ async def delete_subcategory(
     Returns:
         None (204 No Content)
     """
+
     service = CategoryService(CategoryRepository(session))
 
     subcategory = await service.get_category_by_id(subcategory_id)
@@ -384,7 +410,9 @@ async def delete_subcategory(
     response_model=CategoryRead,
     summary="Move category to new parent",
 )
+@limiter.limit(RateLimits.WRITE)
 async def move_category(
+        request: Request,
         category_id: int,
         new_parent_id: Optional[int] = Query(None, description="ID of new parent (null for root)"),
         session: AsyncSession = Depends(get_session),
@@ -401,6 +429,7 @@ async def move_category(
     Returns:
         CategoryRead: Updated category
     """
+
     service = CategoryService(CategoryRepository(session))
     category = await service.move_category(category_id, new_parent_id)
     await session.commit()
@@ -413,7 +442,9 @@ async def move_category(
     "/{category_id}/products/count",
     summary="Get products count in category",
 )
+@limiter.limit(RateLimits.READ)
 async def get_category_products_count(
+        request: Request,
         category_id: int,
         session: AsyncSession = Depends(get_session),
         include_subcategories: bool = Query(False, description="Include products from subcategories"),
@@ -428,6 +459,7 @@ async def get_category_products_count(
     Returns:
         dict: Category ID and products count
     """
+
     service = CategoryService(CategoryRepository(session))
     count = await service.get_products_count(category_id, include_subcategories)
     return {

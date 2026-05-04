@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Request, Response, HTTPException
+from fastapi import APIRouter, Depends, Request, Response, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal
 from typing import Optional
 from app.core.database import get_session
 from app.core.dependencies import get_current_user_optional, get_current_user
+from app.core.rate_limiter import limiter, RateLimits
 from app.core.session import get_or_create_session_id
 from app.modules.cart.schemas import CartRead, CartItemRead, CartItemCreate, CartItemUpdate
 from app.modules.cart.service import CartService
@@ -17,6 +18,7 @@ router = APIRouter(
 
 
 @router.post("/items", response_model=CartRead)
+@limiter.limit(RateLimits.WRITE)
 async def add_to_cart(
         request: Request,
         response: Response,
@@ -65,6 +67,7 @@ async def add_to_cart(
 
 
 @router.get("/", response_model=CartRead)
+@limiter.limit(RateLimits.READ)
 async def get_cart(
         request: Request,
         response: Response,
@@ -103,6 +106,7 @@ async def get_cart(
 
 
 @router.delete("/", response_model=CartRead)
+@limiter.limit(RateLimits.WRITE)
 async def clear_cart(
         request: Request,
         response: Response,
@@ -138,6 +142,7 @@ async def clear_cart(
 
 
 @router.post("/product/{product_id}/increment", response_model=CartRead)
+@limiter.limit(RateLimits.WRITE)
 async def increment_product_quantity(
         request: Request,
         response: Response,
@@ -185,6 +190,7 @@ async def increment_product_quantity(
 
 
 @router.post("/product/{product_id}/decrement", response_model=CartRead)
+@limiter.limit(RateLimits.WRITE)
 async def decrement_product_quantity(
         request: Request,
         response: Response,
@@ -232,6 +238,7 @@ async def decrement_product_quantity(
 
 
 @router.put("/product/{product_id}/quantity", response_model=CartRead)
+@limiter.limit(RateLimits.WRITE)
 async def update_product_quantity(
         request: Request,
         response: Response,
@@ -281,6 +288,7 @@ async def update_product_quantity(
 
 
 @router.post("/merge")
+@limiter.limit(RateLimits.READ)
 async def merge_carts(
         request: Request,
         response: Response,

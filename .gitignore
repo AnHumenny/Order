@@ -97,3 +97,4 @@ tsconfig.tsbuildinfo
 # Folders
 app/modules/admin/
 app/modules/auth/
+app/modules/currency/

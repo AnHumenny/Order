@@ -6,8 +6,8 @@ from contextlib import asynccontextmanager
 from redis import asyncio as redis
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-
 from app.core.config import settings
+from app.core.rate_limiter import setup_rate_limiter
 from app.modules.admin import admin
 from app.modules.auth.router import router as auth_router
 from app.modules.users.router import router as users_router
@@ -42,7 +42,6 @@ async def lifespan(app: FastAPI):
     await redis_client.close()
 
 
-
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
@@ -67,6 +66,9 @@ app.add_middleware(
     https_only=False,
 )
 
+setup_rate_limiter(app)
+
+admin.mount_to(app)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(auth_router, tags=["Auth"])
@@ -78,5 +80,3 @@ app.include_router(cart_router, tags=["Cart"])
 app.include_router(orders_router, tags=["Orders"])
 app.include_router(analytics_router, tags=["Analytics"])
 app.include_router(payment_router, tags=["Stripe"])
-
-admin.mount_to(app)

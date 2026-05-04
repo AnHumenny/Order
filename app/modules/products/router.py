@@ -1,10 +1,11 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from app.core.database import get_session
 from app.core.dependencies import get_current_admin
+from app.core.rate_limiter import RateLimits, limiter
 from app.modules.category.models import Category
 from app.modules.products.repository import ProductRepository
 from app.modules.category.repository import CategoryRepository
@@ -23,8 +24,10 @@ router = APIRouter(
 )
 
 
-@router.get("/search", response_model=List[ProductFilter])
+@router.get("/search", response_model=List[ProductFilter])     #кэшировать часто повторяющиеся запросы?
+@limiter.limit(RateLimits.READ)
 async def search_products(
+        request: Request,
         name: str = Query(..., min_length=2, max_length=100),
         skip: int = Query(0, ge=0),
         limit: int = Query(20, ge=1, le=100),
@@ -47,7 +50,9 @@ async def search_products(
 
 
 @router.get("/search/advanced", response_model=List[ProductFilter])
+@limiter.limit(RateLimits.READ)
 async def search_products_advanced(
+        request: Request,
         search: str = Query(..., min_length=2, description="Поисковый запрос"),
         min_price: Optional[float] = Query(None, gt=0, description="Минимальная цена"),
         max_price: Optional[float] = Query(None, gt=0, description="Максимальная цена"),
@@ -99,7 +104,9 @@ async def search_products_advanced(
 
 
 @router.get("/search/with-count")
+@limiter.limit(RateLimits.READ)
 async def search_products_with_count(
+        request: Request,
         name: str = Query(..., min_length=2),
         skip: int = Query(0, ge=0),
         limit: int = Query(20, ge=1, le=100),
@@ -128,7 +135,9 @@ async def search_products_with_count(
 
 
 @router.get("/filter/", response_model=list[ProductFilter])
+@limiter.limit(RateLimits.READ)
 async def get_products(
+        request: Request,
         filters: ProductFilterParams = Depends(),
         session: AsyncSession = Depends(get_session),
 ):
@@ -142,7 +151,9 @@ async def get_products(
 
 
 @router.get("/by-category/{category_id}", response_model=list[ProductRead])
+@limiter.limit(RateLimits.READ)
 async def list_products_by_category(
+        request: Request,
         category_id: int,
         skip: int = Query(0, ge=0),
         limit: int = Query(10, ge=1, le=100),
@@ -164,7 +175,9 @@ async def list_products_by_category(
 
 
 @router.get("/by-category/{category_id}/count")
+@limiter.limit(RateLimits.READ)
 async def count_products_by_category(
+        request: Request,
         category_id: int,
         include_subcategories: bool = Query(False),
         session: AsyncSession = Depends(get_session),
@@ -187,7 +200,9 @@ async def count_products_by_category(
 
 
 @router.get("/{product_id}", response_model=ProductRead)
+@limiter.limit(RateLimits.READ)
 async def get_product(
+        request: Request,
         product_id: int,
         session: AsyncSession = Depends(get_session)
 ):
@@ -201,7 +216,9 @@ async def get_product(
 
 
 @router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
+@limiter.limit(RateLimits.READ)
 async def create_product(
+        request: Request,
         data: ProductCreate,
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
@@ -219,7 +236,9 @@ async def create_product(
 
 
 @router.get("/", response_model=list[ProductRead])
+@limiter.limit(RateLimits.READ)
 async def list_products(
+        request: Request,
         session: AsyncSession = Depends(get_session),
         skip: int = Query(0, ge=0),
         limit: int = Query(20, ge=1, le=100),
@@ -235,7 +254,9 @@ async def list_products(
 
 
 @router.delete("/{product_id}", summary="Delete product")
+@limiter.limit(RateLimits.READ)
 async def delete_product(
+        request: Request,
         product_id: int,
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin),
@@ -252,7 +273,9 @@ async def delete_product(
 
 
 @router.patch("/{product_id}/deactivate", summary="Update product to deactivate")
+@limiter.limit(RateLimits.READ)
 async def product_to_deactivate(
+        request: Request,
         product_id: int,
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin),
@@ -269,7 +292,9 @@ async def product_to_deactivate(
 
 
 @router.patch("/{product_id}/activate", summary="Update product to activate")
+@limiter.limit(RateLimits.READ)
 async def product_to_activate(
+        request: Request,
         product_id: int,
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin),
@@ -286,7 +311,9 @@ async def product_to_activate(
 
 
 @router.patch("/{product_id}", response_model=ProductRead)
+@limiter.limit(RateLimits.READ)
 async def update_product(
+        request: Request,
         product_id: int,
         product_update: ProductUpdate,
         session: AsyncSession = Depends(get_session),
