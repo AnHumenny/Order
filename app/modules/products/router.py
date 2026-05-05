@@ -7,6 +7,8 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_admin
 from app.core.rate_limiter import RateLimits, limiter
 from app.modules.category.models import Category
+from app.modules.currency.dependencies import get_user_currency
+from app.modules.products.dependencies import get_product_service
 from app.modules.products.repository import ProductRepository
 from app.modules.category.repository import CategoryRepository
 from app.modules.products.schemas import (
@@ -204,15 +206,13 @@ async def count_products_by_category(
 async def get_product(
         request: Request,
         product_id: int,
-        session: AsyncSession = Depends(get_session)
+        product_service: ProductService = Depends(get_product_service),
+        currency: str = Depends(get_user_currency)
 ):
-    """Get a specific product by ID."""
+    """Get a specific product by ID with price in user's currency."""
 
-    service = ProductService(
-        ProductRepository(session),
-        CategoryRepository(session)
-    )
-    return await service.get_product_by_id(product_id)
+    product_service.currency = currency
+    return await product_service.get_product_by_id(product_id)
 
 
 @router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)

@@ -66,7 +66,16 @@ Project/
 │   │   │   ├── service.py                 # Business logic
 │   │   │   └── router.py                  # Endpoints (/categories/...)
 │   │   │
-│   │   ├── currency/*                     # Multi-currency payments
+│   │   ├── currency/                      # Multi-currency payments
+│   │   │   ├── __init__.py                # Module initialization, router export
+│   │   │   ├── currency.py                # Currency Constants: List of supported currencies, symbols, flags, names
+│   │   │   ├── models.py                  # SQLAlchemy models (exchange currency)
+│   │   │   ├── schemas.py                 # Pydantic schemas for validation
+│   │   │   ├── middleware.py              # Middleware for determining user currency by headers/IP
+│   │   │   ├── repository.py              # CRUD operations with database
+│   │   │   ├── service.py                 # Business logic (getting rates, exchange rates, ... )
+│   │   │   ├── router.py                  # FastAPI endpoints
+│   │   │   └── dependencies.py            # Dependencies (get_country_by_ip, get_user_currency)
 │   │   │
 │   │   ├── orders/                        # Orders
 │   │   │   ├── __init__.py
@@ -126,7 +135,7 @@ Project/
 ### Features
 
 ```
-| Module          |	Description                 |  Endpoints
+| Module          | Description                 | Endpoints
 |-----------------|-----------------------------|-------------------------------------------------------------|
 | **Admin**       | Control panel               | *:8000/admin/
 | **Auth**        | User model                  | registration, list of users, delete user	
@@ -136,7 +145,8 @@ Project/
 | **Cart**        | Shopping cart               | GET /cart, POST /cart/add, DELETE /cart/remove/{item_id}...
 | **Orders**      | Checkout and order history  | POST /orders, GET /orders, GET /orders/{id}...
 | **Payment**     | Stripe integration          | POST /payment/create-checkout-session, POST /payment/webhook
-| **Analytics **  | Purchase statistics	        | GET /analytics/user-purchases, GET /analytics/user-stats
+| **Analytics**   | Purchase statistics	        | GET /analytics/user-purchases, GET /analytics/user-stats
+| **Currency**    | Multi-currency support      | GET /currencies/rates, GET /currencies/convert, GET /currencies/detect, GET /currencies/supported 
 ```
 
 ### Technologies

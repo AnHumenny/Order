@@ -18,6 +18,7 @@ from app.modules.cart.router import router as cart_router
 from app.modules.orders.router import router as orders_router
 from app.modules.payment.router import router as payment_router
 from app.modules.analytics.router import router as analytics_router
+from app.modules.currency.router import router as currencies_router
 import stripe
 import os
 
@@ -71,6 +72,7 @@ setup_rate_limiter(app)
 admin.mount_to(app)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+app.include_router(currencies_router)
 app.include_router(auth_router, tags=["Auth"])
 app.include_router(users_router, tags=["Users"])
 app.include_router(categories_router, tags=["Category"])

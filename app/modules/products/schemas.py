@@ -51,6 +51,27 @@ class ProductUpdate(BaseModel):
     )
 
 
+class PriceInfo(BaseModel):
+    """Information about converted price for multi-currency support."""
+
+    usd_amount: float = Field(..., description="Original price in USD")
+    converted_amount: float = Field(..., description="Converted price in user's currency")
+    currency: str = Field(..., description="Target currency code (EUR, GBP, etc.)")
+    rate_used: float = Field(..., description="Exchange rate used for conversion")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "usd_amount": 999.00,
+                "converted_amount": 919.08,
+                "currency": "EUR",
+                "rate_used": 0.92
+            }
+        }
+    )
+
+
+
 class ProductRead(BaseModel):
     """Product read schema with category and images relations."""
 
@@ -62,6 +83,7 @@ class ProductRead(BaseModel):
     category_id: Optional[int] = None
     category: Optional["CategoryRead"] = None
     images: List["ProductImageRead"] = []
+    price_local: Optional[PriceInfo] = None
 
     model_config = ConfigDict(from_attributes=True)
 
