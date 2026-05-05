@@ -35,30 +35,43 @@ async def create_checkout_session_service(user, session: AsyncSession) -> dict:
         await session.commit()
         raise HTTPException(400, "Order expired. Please checkout again.")
 
-    checkout_session = stripe.checkout.Session.create(
-        payment_method_types=["card"],
-        line_items=[{
-            "price_data": {
-                "currency": "eur",
-                "product_data": {
-                    "name": f"Order #{order.id}",
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",  # если потом добавишь мультивалютность – заменишь
+                    "product_data": {
+                        "name": f"Order #{order.id}",
+                    },
+                    "unit_amount": int(order.total_amount * 100),
                 },
-                "unit_amount": int(order.total_amount * 100),
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=f"{settings.get_frontend_success_url()}?order_id={order.id}",
+            cancel_url=settings.get_frontend_cancel_url(),
+            customer_email=user.email,
+            metadata={
+                "order_id": str(order.id),
+                "user_id": str(user.id)
             },
-            "quantity": 1,
-        }],
-        mode="payment",
-        success_url=f"{settings.get_frontend_success_url()}?order_id={order.id}",
-        cancel_url=settings.get_frontend_cancel_url(),
-        customer_email=user.email,
-        metadata={
-            "order_id": str(order.id),
-            "user_id": str(user.id)
-        },
-    )
+        )
+
+    except stripe.error.AuthenticationError:
+        raise HTTPException(500, "Stripe authentication failed. Please check API key.")
+    except stripe.error.InvalidRequestError as e:
+        raise HTTPException(400, f"Invalid payment request: {e}")
+    except stripe.error.RateLimitError:
+        raise HTTPException(429, "Too many requests. Try later.")
+    except stripe.error.StripeError as e:
+        raise HTTPException(500, f"Stripe error: {e}")
+    except Exception as e:
+        raise HTTPException(500, "Unexpected error creating payment session.")
 
     order.checkout_session_id = checkout_session.id
     await session.commit()
+
 
     return {
         "checkout_url": checkout_session.url,
