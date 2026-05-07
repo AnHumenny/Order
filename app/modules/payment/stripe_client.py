@@ -12,7 +12,7 @@ def create_payment_intent(amount: int, metadata: dict) -> stripe.PaymentIntent:
 
     return stripe.PaymentIntent.create(
         amount=amount,
-        currency="eur",
+        currency="usd",
         metadata=metadata,
         automatic_payment_methods={"enabled": True},
     )

@@ -40,7 +40,7 @@ async def create_checkout_session_service(user, session: AsyncSession) -> dict:
             payment_method_types=["card"],
             line_items=[{
                 "price_data": {
-                    "currency": "eur",  # если потом добавишь мультивалютность – заменишь
+                    "currency": "usd",
                     "product_data": {
                         "name": f"Order #{order.id}",
                     },
@@ -71,7 +71,6 @@ async def create_checkout_session_service(user, session: AsyncSession) -> dict:
 
     order.checkout_session_id = checkout_session.id
     await session.commit()
-
 
     return {
         "checkout_url": checkout_session.url,

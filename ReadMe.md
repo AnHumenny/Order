@@ -1,7 +1,7 @@
 ----------------------------------------------------
 ----------------------------------------------------
 ### React + TypeScript + Vite
-[![YouTube](https://img.shields.io/badge/YouTube-Video_rewiev-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=4XtMk9m5ymI)
+[![YouTube](https://img.shields.io/badge/YouTube-Video_rewiev-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=MsaDlukeppg)
 ----------------------------------------------------
 ----------------------------------------------------
 

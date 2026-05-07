@@ -116,6 +116,7 @@ class CartService:
             total_price=total_price,
         )
 
+
     async def get_cart_items_for_checkout(
             self,
             user_id: Optional[int] = None,
@@ -145,7 +146,7 @@ class CartService:
             self,
             user_id: Optional[int] = None,
             session_id: Optional[str] = None
-    ):
+    ) -> None:
         """Remove all items from the shopping cart.
 
         Args:
