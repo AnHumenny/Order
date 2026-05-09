@@ -89,8 +89,7 @@ Project/
 │   │   │   ├── __init__.py
 │   │   │   ├── models.py                  # Payment models
 │   │   │   ├── schemas.py                 # Pydantic schemas
-│   │   │   ├── repository.py              # Database operations
-│   │   │   ├── service.py                 # Payment logic
+│   │   │   ├── service.py                 # Payment logic  
 │   │   │   ├── router.py                  # Endpoints (/payment/...)
 │   │   │   └── stripe_client.py           # Stripe integration
 │   │   │

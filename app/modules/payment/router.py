@@ -4,6 +4,7 @@ import stripe
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_session
 from app.core.rate_limiter import limiter, RateLimits
+from app.modules.currency import get_user_currency
 from app.modules.payment.service import (
     create_checkout_session_service,
     process_payment_cancel,
@@ -18,17 +19,21 @@ router = APIRouter(
 
 @router.post("/create-checkout-session")
 @limiter.limit(RateLimits.READ)
-async def create_checkout_session(request: Request, user=Depends(get_current_user),
-                                  session: AsyncSession = Depends(get_session)):
-    """Create a Stripe Checkout Session for the current user.
+async def create_checkout_session(
+        request: Request,
+        session: AsyncSession = Depends(get_session),
+        user=Depends(get_current_user),
+        user_currency: str = Depends(get_user_currency)
+):
+    """Create Stripe checkout session for current order."""
 
-        Generates a Stripe Checkout Session for the authenticated user's cart/order,
-        allowing them to proceed to payment. Typically redirects to Stripe's hosted
-        checkout page.
+    result = await create_checkout_session_service(
+        user=user,
+        session=session,
+        user_currency=user_currency
+    )
 
-        Authentication is required.
-        """
-    return await create_checkout_session_service(user, session)
+    return result
 
 
 @router.get("/cancel")
