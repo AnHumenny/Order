@@ -1,6 +1,10 @@
+import os
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from typing import Optional, List
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -48,6 +52,11 @@ class Settings(BaseSettings):
         None, description="Secret for verifying Stripe webhook signatures"
     )
 
+    STRIPE_SUPPORTED_CURRENCIES: str = Field(
+        default="usd,eur,gbp,jpy,cad,aud,chf,cny,pln,rub",
+        description="Comma-separated list of currencies supported by Stripe"
+    )
+
     EXPIRES_AT: int = Field(
         default=3600,
         description="Payment session timeout in seconds"
@@ -82,6 +91,18 @@ class Settings(BaseSettings):
             return self.REDIS_URL
 
         return f"{self.REDIS_URL}/1"
+
+    @property
+    def stripe_supported_currencies(self) -> List[str]:
+        """Get list of currencies supported by Stripe."""
+
+        currencies = os.getenv("STRIPE_SUPPORTED_CURRENCIES", "usd,eur,gbp,jpy,cad,aud,chf,cny,pln,rub")
+        return [c.strip().lower() for c in currencies.split(",")]
+
+    @property
+    def stripe_fallback_currency(self) -> str:
+        """Currency to use when user's currency is not supported by Stripe."""
+        return os.getenv("STRIPE_FALLBACK_CURRENCY", "usd")
 
     def get_frontend_url(self) -> str:
         return self.FRONTEND_URL

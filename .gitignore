@@ -98,3 +98,4 @@ tsconfig.tsbuildinfo
 app/modules/admin/
 app/modules/auth/
 app/modules/currency/
+app/modules/payment/

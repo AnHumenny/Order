@@ -11,6 +11,7 @@ ALLOWED_ORIGINS=список хостов
 STRIPE_PUBLISHABLE_KEY= Stripe
 STRIPE_SECRET_KEY= Stripe
 STRIPE_WEBHOOK_SECRET= Stripe
+STRIPE_SUPPORTED_CURRENCIES=usd,eur,gbp,...
 
 PORT= 8000 (по дефолту, должен соответствовать порту, на котором запускается приложение, относится к обработке вебхука stripe)
 
