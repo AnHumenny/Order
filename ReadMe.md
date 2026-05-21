@@ -92,6 +92,8 @@ Project/
 │   │   │   ├── service.py                 # Payment logic  
 │   │   │   ├── router.py                  # Endpoints (/payment/...)
 │   │   │   └── stripe_client.py           # Stripe integration
+│   │   │   ├── yookassa_router.py                  # Endpoints (/payment/...)
+│   │   │   └── yookassa_client.py           # Yookassa integration
 │   │   │
 │   │   ├── products/                      # Products
 │   │   │   ├── __init__.py

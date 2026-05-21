@@ -42,6 +42,13 @@ class Settings(BaseSettings):
 
     PORT: int = Field(default=8000, description="Server port")
 
+    YOOKASSA_SHOP_ID: Optional[str] = Field(
+        None, description="YooKassa shop ID"
+    )
+    YOOKASSA_SECRET_KEY: Optional[str] = Field(
+        None, description="YooKassa secret key"
+    )
+
     STRIPE_PUBLISHABLE_KEY: Optional[str] = Field(
         None, description="Stripe publishable key"
     )

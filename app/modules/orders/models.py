@@ -85,6 +85,7 @@ class Order(Base):
     )
 
     checkout_session_id = mapped_column(String, nullable=True, unique=True)
+    yookassa_payment_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped["User"] = relationship(
