@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from starlette import status
 from app.modules.category.repository import CategoryRepository
-from app.modules.currency import get_currency_service
+from app.modules.private_modules.currency import get_currency_service
 from app.modules.products.models import Product
 from app.modules.products.repository import ProductRepository
 from app.modules.products.schemas import ProductCreate, ProductUpdate, ProductFilterParams, ProductFilter, ProductRead, \

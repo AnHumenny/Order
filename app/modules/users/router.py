@@ -4,10 +4,10 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.core.rate_limiter import limiter, RateLimits
 from app.modules.users.models import User
-from app.modules.auth.repository import UserRepository
-from app.modules.auth.schemas import UserRead, Token
+from app.modules.private_modules.auth.repository import UserRepository
+from app.modules.private_modules.auth.schemas import UserRead, Token
 from fastapi.security import OAuth2PasswordRequestForm
-from app.modules.auth.service import UserService
+from app.modules.private_modules.auth.service import UserService
 
 router = APIRouter(
     prefix="/users",

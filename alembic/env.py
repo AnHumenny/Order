@@ -7,6 +7,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.core.database import Base
+from app.modules.auth.models import User
+from app.modules.cart.models import Cart, CartItem
+from app.modules.category.models import Category
+from app.modules.orders.models import OrderStatus, Order, OrderItem
+from app.modules.products.models import Product
+from app.modules.products.gallery.models import ProductImage
+from app.modules.orders.models import Order, OrderItem
 
 config = context.config
 fileConfig(config.config_file_name)

@@ -41,14 +41,6 @@ Project/
 │   │   │   ├── service.py                 # Analytics business logic
 │   │   │   └── router.py                  # Endpoints (/analytics/...)
 │   │   │
-│   │   ├── auth/                          # Authentication and users
-│   │   │   ├── __init__.py                # Module initialization, router export
-│   │   │   ├── models.py                  # SQLAlchemy models (User)
-│   │   │   ├── schemas.py                 # Pydantic schemas for validation
-│   │   │   ├── repository.py              # CRUD operations with database
-│   │   │   ├── service.py                 # Business logic (registration, login)
-│   │   │   ├── router.py                  # FastAPI endpoints
-│   │   │   └── dependencies.py            # Dependencies (get_current_user)
 │   │   │
 │   │   ├── cart/                          # Shopping cart
 │   │   │   ├── __init__.py
@@ -66,17 +58,6 @@ Project/
 │   │   │   ├── service.py                 # Business logic
 │   │   │   └── router.py                  # Endpoints (/categories/...)
 │   │   │
-│   │   ├── currency/                      # Multi-currency payments
-│   │   │   ├── __init__.py                # Module initialization, router export
-│   │   │   ├── currency.py                # Currency Constants: List of supported currencies, symbols, flags, names
-│   │   │   ├── models.py                  # SQLAlchemy models (exchange currency)
-│   │   │   ├── schemas.py                 # Pydantic schemas for validation
-│   │   │   ├── middleware.py              # Middleware for determining user currency by headers/IP
-│   │   │   ├── repository.py              # CRUD operations with database
-│   │   │   ├── service.py                 # Business logic (getting rates, exchange rates, ... )
-│   │   │   ├── router.py                  # FastAPI endpoints
-│   │   │   └── dependencies.py            # Dependencies (get_country_by_ip, get_user_currency)
-│   │   │
 │   │   ├── orders/                        # Orders
 │   │   │   ├── __init__.py
 │   │   │   ├── models.py                  # Order models
@@ -84,14 +65,6 @@ Project/
 │   │   │   ├── repository.py              # Database operations
 │   │   │   ├── service.py                 # Order logic
 │   │   │   └── router.py                  # Endpoints (/orders/...)
-│   │   │
-│   │   ├── payment/                       # Payments (Stripe)
-│   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Payment models
-│   │   │   ├── schemas.py                 # Pydantic schemas
-│   │   │   ├── service.py                 # Payment logic  
-│   │   │   ├── router.py                  # Endpoints (/payment/...)
-│   │   │   └── stripe_client.py           # Stripe integration
 │   │   │
 │   │   ├── products/                      # Products
 │   │   │   ├── __init__.py
@@ -109,14 +82,57 @@ Project/
 │   │   │       ├── router.py              # API endpoints
 │   │   │       └── upload.py              # File upload logic
 │   │   │
-│   │   └── users/                         # Users (extended profile)
-│   │       ├── __init__.py
-│   │       ├── models.py                  # User model
-│   │       ├── schemas.py                 # Pydantic schemas
-│   │       ├── repository.py              # Database operations
-│   │       ├── service.py                 # User logic
-│   │       ├── dependencies.py            # Dependencies (get_current_user)
-│   │       └── router.py                  # Endpoints (/users/...)
+│   │   ├──  users/                         # Users (extended profile)
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py                  # User model
+│   │   │   ├── schemas.py                 # Pydantic schemas
+│   │   │   ├── repository.py              # Database operations
+│   │   │   ├── service.py                 # User logic
+│   │   │   ├── dependencies.py            # Dependencies (get_current_user)
+│   │   │   └── router.py                  # Endpoints (/users/...)
+│   │   │
+│   │   └── private_modules
+│   │       ├── auth/                          # Authentication and users
+│   │       │   ├── __init__.py                # Module initialization, router export
+│   │       │   ├── models.py                  # SQLAlchemy models (User)
+│   │       │   ├── schemas.py                 # Pydantic schemas for validation
+│   │       │   ├── repository.py              # CRUD operations with database
+│   │       │   ├── service.py                 # Business logic (registration, login)
+│   │       │   ├── router.py                  # FastAPI endpoints
+│   │       │   └── dependencies.py            # Dependencies (get_current_user)
+│   │       │    
+│   │       ├── currency/                      # Multi-currency payments
+│   │       │   ├── __init__.py                # Module initialization, router export
+│   │       │   ├── currency.py                # Currency Constants: List of supported currencies, symbols, flags, names
+│   │       │   ├── models.py                  # SQLAlchemy models (exchange currency)
+│   │       │   ├── schemas.py                 # Pydantic schemas for validation
+│   │       │   ├── middleware.py              # Middleware for determining user currency by headers/IP
+│   │       │   ├── repository.py              # CRUD operations with database
+│   │       │   ├── service.py                 # Business logic (getting rates, exchange rates, ... )
+│   │       │   ├── router.py                  # FastAPI endpoints
+│   │       │   └── dependencies.py            # Dependencies (get_country_by_ip, get_user_currency)
+│   │       │
+│   │       ├── payment/                       # Payments (Stripe, YooKassa)
+│   │       │   ├── __init__.py
+│   │       │   ├── models.py                  # Payment models
+│   │       │   ├── schemas.py                 # Pydantic schemas
+│   │       │   ├── service.py                 # Payment logic  
+│   │       │   ├── router.py                  # Endpoints (/payment/...)
+│   │       │   ├── stripe_client.py           # Stripe integration
+│   │       │   ├── yookassa_router.py         # Endpoints (/payment/...)
+│   │       │   └── yookassa_client.py         # Yookassa integration
+│   │       │ 
+│   │       └──  /admin/         # Admin dashboard (built-in FastAPI admin interface)
+│   │           ├── __init__.py                # Module initialization
+│   │           ├── views/                     # Admin view definitions
+│   │           │   ├── __init__.py
+│   │           │   ├── dashboard.py           # Main admin dashboard view
+│   │           │   ├── users.py               # User management views
+│   │           │   ├── products.py            # Product management views
+│   │           │   ├── categories.py          # Category management views
+│   │           │   └── orders.py              # Order management views
+│   │           ├── auth.py                    # Admin authentication & access control
+│   │           └── config.py                  # Admin interface configuration
 │   │
 │   └── main.py                            # Entry point, router registration
 │
