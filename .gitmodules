@@ -1,0 +1,3 @@
+[submodule "app/modules/private_modules"]
+	path = app/modules/private_modules
+	url = git@github.com:AnHumenny/order-private-core.git
