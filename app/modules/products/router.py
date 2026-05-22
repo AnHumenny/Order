@@ -7,7 +7,7 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_admin
 from app.core.rate_limiter import RateLimits, limiter
 from app.modules.category.models import Category
-from app.modules.currency.dependencies import get_user_currency
+from app.modules.private_modules.currency.dependencies import get_user_currency
 from app.modules.products.dependencies import get_product_service
 from app.modules.products.repository import ProductRepository
 from app.modules.category.repository import CategoryRepository

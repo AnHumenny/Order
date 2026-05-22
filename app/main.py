@@ -8,18 +8,18 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from app.core.config import settings
 from app.core.rate_limiter import setup_rate_limiter
-from app.modules.admin import admin
-from app.modules.auth.router import router as auth_router
+from app.modules.private_modules.admin import admin
+from app.modules.private_modules.auth.router import router as auth_router
 from app.modules.users.router import router as users_router
 from app.modules.category.router import router as categories_router
 from app.modules.products.router import router as products_router
 from app.modules.products.gallery.routes import router as product_images_router
 from app.modules.cart.router import router as cart_router
 from app.modules.orders.router import router as orders_router
-from app.modules.payment.router import router as payment_router
+from app.modules.private_modules.payment.router import router as payment_router
 from app.modules.analytics.router import router as analytics_router
-from app.modules.currency.router import router as currencies_router
-from app.modules.payment.yookassa_router import router as yookassa_router
+from app.modules.private_modules.currency.router import router as currencies_router
+from app.modules.private_modules.payment.yookassa_router import router as yookassa_router
 import stripe
 import os
 

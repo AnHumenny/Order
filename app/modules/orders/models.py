@@ -8,7 +8,7 @@ from app.core.database import Base
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from app.modules.auth.models import User
+    from app.modules.private_modules.auth.models import User
 
 class OrderStatus(str, enum.Enum):
     """Order statuses in the system.

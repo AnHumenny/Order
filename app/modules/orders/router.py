@@ -5,13 +5,13 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_user, get_current_admin
 from app.core.rate_limiter import limiter, RateLimits
 from app.modules.orders.models import Order, OrderStatus
-from app.modules.users.models import User
 from app.modules.orders.schemas import OrderRead
 from app.modules.orders.repository import OrderRepository
 from app.modules.orders.service import OrderService, checkout_cart
 from app.modules.cart.repository import CartRepository
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.modules.private_modules.auth.models import User
 
 router = APIRouter(
     prefix="/orders",

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Response, HTTPException, Request
+from fastapi import APIRouter, Depends, Response, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal
 from typing import Optional
@@ -9,7 +9,7 @@ from app.core.session import get_or_create_session_id
 from app.modules.cart.schemas import CartRead, CartItemRead, CartItemCreate, CartItemUpdate
 from app.modules.cart.service import CartService
 from app.modules.cart.repository import CartRepository
-from app.modules.users.models import User
+from app.modules.private_modules.auth.models import User
 
 router = APIRouter(
     prefix="/cart",
