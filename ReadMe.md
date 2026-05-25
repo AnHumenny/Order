@@ -21,17 +21,6 @@ Project/
 │   │   └── session.py                     # Session cookies
 │   │
 │   ├── modules/                           # Application modules (functional blocks)
-│   │   ├── admin/                         # Admin panel
-│   │   │   ├── __init__.py                # Admin initialization and export
-│   │   │   ├── config.py                  # Admin panel settings
-│   │   │   ├── auth.py                    # Admin access configuration
-│   │   │   └── views/                     # Views for different models
-│   │   │       ├── __init__.py
-│   │   │       ├── users.py               # AdminView for users
-│   │   │       ├── products.py            # AdminView for products
-│   │   │       ├── orders.py              # AdminView for orders
-│   │   │       ├── categories.py          # AdminView for categories
-│   │   │       └── dashboard.py           # AdminView dashboard
 │   │   │
 │   │   ├── analytics/                     # Analytics and statistics
 │   │   │   ├── __init__.py
@@ -40,7 +29,6 @@ Project/
 │   │   │   ├── repository.py              # Database queries for analytics
 │   │   │   ├── service.py                 # Analytics business logic
 │   │   │   └── router.py                  # Endpoints (/analytics/...)
-│   │   │
 │   │   │
 │   │   ├── cart/                          # Shopping cart
 │   │   │   ├── __init__.py
@@ -112,17 +100,24 @@ Project/
 │   │       │   ├── router.py                  # FastAPI endpoints
 │   │       │   └── dependencies.py            # Dependencies (get_country_by_ip, get_user_currency)
 │   │       │
-│   │       ├── payment/                       # Payments (Stripe, YooKassa)
-│   │       │   ├── __init__.py
-│   │       │   ├── models.py                  # Payment models
-│   │       │   ├── schemas.py                 # Pydantic schemas
-│   │       │   ├── service.py                 # Payment logic  
-│   │       │   ├── router.py                  # Endpoints (/payment/...)
-│   │       │   ├── stripe_client.py           # Stripe integration
-│   │       │   ├── yookassa_router.py         # Endpoints (/payment/...)
-│   │       │   └── yookassa_client.py         # Yookassa integration
-│   │       │ 
-│   │       └──  /admin/         # Admin dashboard (built-in FastAPI admin interface)
+│   │       ├── payment/                        # Payment processing
+│   │       │   ├── __init__.py                 # Module initialization
+│   │       │   │
+│   │       │   ├── stripe/                     # Stripe payment provider
+│   │       │   │   ├── __init__.py
+│   │       │   │   ├── stripe_client.py        # Stripe API client
+│   │       │   │   ├── stripe_router.py        # Endpoints (/payment/stripe/...)
+│   │       │   │   └── stripe_service.py       # Stripe business logic
+│   │       │   │
+│   │       │   ├── yookassa/                   # YooKassa payment provider
+│   │       │   │   ├── __init__.py
+│   │       │   │   ├── yookassa_client.py      # YooKassa API client
+│   │       │   │   ├── yookassa_router.py      # Endpoints (/payment/yookassa/...)
+│   │       │   │   └── yookassa_service.py     # YooKassa business logic
+│   │       │   │
+│   │       │   └── __init__.py
+│   │       │    
+│   │       └── admin/         # Admin dashboard (built-in FastAPI admin interface)
 │   │           ├── __init__.py                # Module initialization
 │   │           ├── views/                     # Admin view definitions
 │   │           │   ├── __init__.py
