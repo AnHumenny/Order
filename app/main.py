@@ -16,10 +16,10 @@ from app.modules.products.router import router as products_router
 from app.modules.products.gallery.routes import router as product_images_router
 from app.modules.cart.router import router as cart_router
 from app.modules.orders.router import router as orders_router
-from app.modules.private_modules.payment.router import router as payment_router
+from app.modules.private_modules.payment.stripe.stripe_router import router as payment_router
 from app.modules.analytics.router import router as analytics_router
 from app.modules.private_modules.currency.router import router as currencies_router
-from app.modules.private_modules.payment.yookassa_router import router as yookassa_router
+from app.modules.private_modules.payment.yookassa.yookassa_router import router as yookassa_router
 import stripe
 import os
 
@@ -75,6 +75,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 app.include_router(yookassa_router, tags=["YooKassa"])
+app.include_router(payment_router, tags=["Stripe"])
 app.include_router(currencies_router)
 app.include_router(auth_router, tags=["Auth"])
 app.include_router(users_router, tags=["Users"])
@@ -84,5 +85,3 @@ app.include_router(product_images_router, tags=["Product Images"])
 app.include_router(cart_router, tags=["Cart"])
 app.include_router(orders_router, tags=["Orders"])
 app.include_router(analytics_router, tags=["Analytics"])
-app.include_router(payment_router, tags=["Stripe"])
-
