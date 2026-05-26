@@ -7,6 +7,7 @@ from redis import asyncio as redis
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from app.core.config import settings
+from app.core.logging_config import setup_logging
 from app.core.rate_limiter import setup_rate_limiter
 from app.modules.private_modules.admin import admin
 from app.modules.private_modules.auth.router import router as auth_router
@@ -22,6 +23,8 @@ from app.modules.private_modules.currency.router import router as currencies_rou
 from app.modules.private_modules.payment.yookassa.yookassa_router import router as yookassa_router
 import stripe
 import os
+
+setup_logging()
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 frontend_url = os.getenv("FRONTEND_URL")
