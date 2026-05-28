@@ -7,6 +7,7 @@ from app.core.rate_limiter import limiter, RateLimits
 from app.modules.products.gallery.repository import ProductImageRepository
 from app.modules.products.gallery.service import ProductImageService
 from app.modules.products.gallery.schemas import ProductImageRead, ProductImageUpdate
+from app.modules.products.repository import ProductRepository
 
 router = APIRouter(
     prefix="/products/{product_id}/images"
@@ -27,8 +28,8 @@ async def get_product_images(
     return await service.get_product_images(product_id)
 
 
-@router.post("/upload", response_model=ProductImageRead, status_code=status.HTTP_201_CREATED) # добавить thumbnails
-@limiter.limit(RateLimits.UPLOAD)
+@router.post("/upload", response_model=ProductImageRead, status_code=status.HTTP_201_CREATED)
+@limiter.limit(RateLimits.WRITE)
 async def upload_product_image(
         request: Request,
         product_id: int,
@@ -38,28 +39,30 @@ async def upload_product_image(
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
 ):
-    """Upload a new image for a product. Max 7 images per product, max 5MB."""
-
-    allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG, PNG, WEBP and GIF images are allowed"
-        )
+    """Upload"""
 
     file.file.seek(0, 2)
     file_size = file.file.tell()
-    if file_size > 5 * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File too large. Maximum size is 5MB"
-        )
     await file.seek(0)
 
-    repo = ProductImageRepository(session)
-    service = ProductImageService(repo)
+    if file_size > 5 * 1024 * 1024:
+        raise HTTPException(400, "File too large. Maximum size is 5MB")
 
-    image = await service.upload_image(product_id, file, is_main, alt_text)
+    allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if file.content_type not in allowed_types:
+        raise HTTPException(400, "Only JPEG, PNG, WEBP and GIF images are allowed")
+
+    image_repo = ProductImageRepository(session)
+    product_repo = ProductRepository(session)
+    service = ProductImageService(image_repo, product_repo)
+
+    image = await service.upload_image(
+        product_id=product_id,
+        file=file,
+        is_main=is_main,
+        alt_text=alt_text
+    )
+
     await session.commit()
     return image
 

@@ -1,7 +1,9 @@
 from typing import Optional, Sequence
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.modules.products import Product
 from app.modules.products.gallery.models import ProductImage
+from sqlalchemy.orm import selectinload
 
 
 class ProductImageRepository:
@@ -20,11 +22,13 @@ class ProductImageRepository:
         return db_image
 
 
-    async def get_by_id(self, image_id: int) -> Optional[ProductImage]:
-        """Get an image by its ID."""
+    async def get_by_id(self, product_id: int) -> Optional[Product]:
+        """Get image by id"""
 
         result = await self.session.execute(
-            select(ProductImage).where(ProductImage.id == image_id)
+            select(Product)
+            .where(Product.id == product_id)
+            .options(selectinload(Product.category))
         )
         return result.scalar_one_or_none()
 
@@ -54,6 +58,7 @@ class ProductImageRepository:
 
     async def delete(self, image_id: int) -> None:
         """Delete image."""
+
         await self.session.execute(
             delete(ProductImage).where(ProductImage.id == image_id)
         )
