@@ -22,10 +22,8 @@ class ProductImageCreate(ProductImageBase):
 class ProductImageUpdate(BaseModel):
     """Schema for updating an existing product image."""
 
-    image_url: Optional[str] = Field(None, max_length=500)
     alt_text: Optional[str] = Field(None, max_length=200)
     is_main: Optional[bool] = None
-    order: Optional[int] = Field(None, ge=0, le=6)
 
 
 class ProductImageRead(ProductImageBase):

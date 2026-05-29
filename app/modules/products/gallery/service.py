@@ -10,12 +10,12 @@ from app.modules.products.repository import ProductRepository
 
 
 class ProductImageService:
-    """Service for managing product images with upload, update, and deletion."""
-
-    def __init__(self, image_repo: ProductImageRepository, product_repo: ProductRepository):
+    def __init__(self, image_repo: ProductImageRepository,
+                 product_repo: Optional[ProductRepository] = None):
         self.image_repo = image_repo
         self.product_repo = product_repo
         self.upload_service = ImageUploadService()
+
 
     async def upload_image(
             self,
@@ -73,33 +73,33 @@ class ProductImageService:
         return await self.image_repo.get_by_product(product_id)
 
 
-    async def update_image(
-        self,
-        image_id: int,
-        product_id: int,
-        update_data: ProductImageUpdate
-    ):
-        """Update an existing product image."""
+    async def get_image_by_id(self, image_id: int):
+        """Get a single image by ID."""
+        return await self.image_repo.get_by_id(image_id)
 
-        image = await self.image_repo.get_by_id(image_id)
-        if not image or image.product_id != product_id:
-            return None
+
+    async def update_image(self, image_id: int, update_data: ProductImageUpdate):
+        """Update an image by ID."""
 
         if update_data.is_main is True:
-            await self.image_repo.unset_main_image(product_id)
+            current = await self.image_repo.get_by_id(image_id)
+            if current:
+                await self.image_repo.unset_main_image(current.product_id)
 
         update_dict = update_data.model_dump(exclude_unset=True)
+
         return await self.image_repo.update(image_id, update_dict)
 
 
-    async def delete_image(self, image_id: int, product_id: int) -> bool | None:
-        """Delete a product image and its file from storage."""
+    async def delete_image(self, image_id: int) -> dict:
+        """Delete image and return status message."""
 
         image = await self.image_repo.get_by_id(image_id)
-        if not image or image.product_id != product_id:
-            return False
+        if not image:
+            return {"success": False, "message": f"Image {image_id} not found"}
 
-        await self.upload_service.delete_image(str(image.image_url))
+        await self.upload_service.delete_image(image.image_url)
+
         return await self.image_repo.delete(image_id)
 
 

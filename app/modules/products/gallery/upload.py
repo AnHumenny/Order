@@ -24,12 +24,11 @@ class ImageUploadService:
         """Structure: static/products/{category_id}/{category_name}/{product_id}/main/ or gallery/"""
 
         safe_name = self._sanitize_name(category_name or "no-category")
-        subfolder = "main" if is_main else "gallery"
 
         if category_id:
-            product_folder = self.upload_dir / str(category_id) / safe_name / str(product_id) / subfolder
+            product_folder = self.upload_dir / str(category_id) / safe_name / str(product_id)
         else:
-            product_folder = self.upload_dir / "0" / "no-category" / str(product_id) / subfolder
+            product_folder = self.upload_dir / "0" / "no-category" / str(product_id)
 
         product_folder.mkdir(parents=True, exist_ok=True)
 
@@ -55,9 +54,9 @@ class ImageUploadService:
         file_size = len(optimized_content)
 
         if category_id:
-            url = f"/static/products/{category_id}/{safe_name}/{product_id}/{subfolder}/{filename}"
+            url = f"/static/products/{category_id}/{safe_name}/{product_id}/{filename}"
         else:
-            url = f"/static/products/0/no-category/{product_id}/{subfolder}/{filename}"
+            url = f"/static/products/0/no-category/{product_id}/{filename}"
 
         return url, file_size, "image/webp"
 

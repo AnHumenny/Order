@@ -10,7 +10,7 @@ from app.modules.products.gallery.schemas import ProductImageRead, ProductImageU
 from app.modules.products.repository import ProductRepository
 
 router = APIRouter(
-    prefix="/products/{product_id}/images"
+    prefix="/images"
 )
 
 
@@ -23,9 +23,29 @@ async def get_product_images(
 ):
     """Get all images for a product."""
 
-    repo = ProductImageRepository(session)
-    service = ProductImageService(repo)
+    image_repo = ProductImageRepository(session)
+    product_repo = ProductRepository(session)
+    service = ProductImageService(image_repo, product_repo)
     return await service.get_product_images(product_id)
+
+
+@router.get("/{image_id}", response_model=ProductImageRead)
+@limiter.limit(RateLimits.READ)
+async def get_image_by_id(
+        request: Request,
+        image_id: int,
+        session: AsyncSession = Depends(get_session)
+):
+    """Get a single image by ID."""
+
+    image_repo = ProductImageRepository(session)
+    service = ProductImageService(image_repo)
+
+    image = await service.get_image_by_id(image_id)
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return image
 
 
 @router.post("/upload", response_model=ProductImageRead, status_code=status.HTTP_201_CREATED)
@@ -68,21 +88,18 @@ async def upload_product_image(
 
 
 @router.patch("/{image_id}", response_model=ProductImageRead)
-@limiter.limit(RateLimits.UPLOAD)
+@limiter.limit(RateLimits.WRITE)
 async def update_product_image(
         request: Request,
-        product_id: int,
         image_id: int,
         image_data: ProductImageUpdate,
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
 ):
-    """Update an existing product image."""
-
+    """  """
     repo = ProductImageRepository(session)
     service = ProductImageService(repo)
-
-    updated = await service.update_image(image_id, product_id, image_data)
+    updated = await service.update_image(image_id, image_data)
     if not updated:
         raise HTTPException(status_code=404, detail="Image not found")
 
@@ -90,25 +107,24 @@ async def update_product_image(
     return updated
 
 
-@router.delete("/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
-@limiter.limit(RateLimits.WRITE)
+@router.delete("/{image_id}", status_code=status.HTTP_200_OK)
 async def delete_product_image(
         request: Request,
-        product_id: int,
         image_id: int,
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
 ):
-    """Delete a product image and remove its file from storage."""
-
+    """ """
     repo = ProductImageRepository(session)
     service = ProductImageService(repo)
 
-    deleted = await service.delete_image(image_id, product_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Image not found")
+    result = await service.delete_image(image_id)
+
+    if not result["success"]:
+        raise HTTPException(status_code=404, detail=result["message"])
 
     await session.commit()
+    return result
 
 
 @router.post("/{image_id}/set-main", response_model=ProductImageRead)

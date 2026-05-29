@@ -1,9 +1,8 @@
 from typing import Optional, Sequence
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.modules.products import Product
+from app.modules.products.gallery import ProductImageUpdate
 from app.modules.products.gallery.models import ProductImage
-from sqlalchemy.orm import selectinload
 
 
 class ProductImageRepository:
@@ -22,13 +21,10 @@ class ProductImageRepository:
         return db_image
 
 
-    async def get_by_id(self, product_id: int) -> Optional[Product]:
-        """Get image by id"""
-
+    async def get_by_id(self, image_id: int) -> Optional[ProductImage]:
+        """Get image by ID."""
         result = await self.session.execute(
-            select(Product)
-            .where(Product.id == product_id)
-            .options(selectinload(Product.category))
+            select(ProductImage).where(ProductImage.id == image_id)
         )
         return result.scalar_one_or_none()
 
@@ -44,7 +40,7 @@ class ProductImageRepository:
         return result.scalars().all()
 
 
-    async def update(self, image_id: int, update_data: dict) -> Optional[ProductImage]:
+    async def update(self, image_id: int, update_data: dict) -> Optional[ProductImageUpdate]:
         """Update an image by ID with provided data."""
 
         await self.session.execute(
@@ -56,13 +52,18 @@ class ProductImageRepository:
         return await self.get_by_id(image_id)
 
 
-    async def delete(self, image_id: int) -> None:
-        """Delete image."""
+    async def delete(self, image_id: int) -> dict:
+        """Delete image by ID. Returns dict with success status and message."""
 
-        await self.session.execute(
+        result = await self.session.execute(
             delete(ProductImage).where(ProductImage.id == image_id)
         )
         await self.session.flush()
+
+        if result.rowcount > 0:
+            return {"success": True, "message": f"Image {image_id} deleted successfully"}
+        else:
+            return {"success": False, "message": f"Image {image_id} not found"}
 
 
     async def unset_main_image(self, product_id: int) -> None:
