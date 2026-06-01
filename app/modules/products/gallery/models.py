@@ -17,7 +17,8 @@ class ProductImage(Base):
     alt_text: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     is_main: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    product_id: Mapped[int] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id",
+                                                       ondelete="CASCADE"), nullable=False, index=True)
     file_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     mime_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 

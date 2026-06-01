@@ -49,7 +49,7 @@ async def get_image_by_id(
 
 
 @router.post("/upload", response_model=ProductImageRead, status_code=status.HTTP_201_CREATED)
-@limiter.limit(RateLimits.WRITE)
+@limiter.limit(RateLimits.UPLOAD)
 async def upload_product_image(
         request: Request,
         product_id: int,
@@ -59,7 +59,7 @@ async def upload_product_image(
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
 ):
-    """Upload"""
+    """Upload a product image with size (max 5MB) and type validation."""
 
     file.file.seek(0, 2)
     file_size = file.file.tell()
@@ -96,7 +96,8 @@ async def update_product_image(
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
 ):
-    """  """
+    """Update fields alt_text, is_main in product image."""
+
     repo = ProductImageRepository(session)
     service = ProductImageService(repo)
     updated = await service.update_image(image_id, image_data)
@@ -114,7 +115,8 @@ async def delete_product_image(
         session: AsyncSession = Depends(get_session),
         admin=Depends(get_current_admin)
 ):
-    """ """
+    """Delete image by id."""
+
     repo = ProductImageRepository(session)
     service = ProductImageService(repo)
 

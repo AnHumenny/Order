@@ -9,9 +9,12 @@ import re
 
 
 class ImageUploadService:
-    def __init__(self, upload_dir: str = "static/products"):
+    """Service for handling product image uploads to the gallery directory."""
+
+    def __init__(self, upload_dir: str = "static/gallery/products/"):
         self.upload_dir = Path(upload_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
+
 
     async def save_image(
             self,
@@ -21,7 +24,7 @@ class ImageUploadService:
             category_name: Optional[str],
             is_main: bool = False
     ) -> Tuple[str, int, str]:
-        """Structure: static/products/{category_id}/{category_name}/{product_id}/main/ or gallery/"""
+        """Structure: static/products/gallery/{category_id}/{category_name}/{product_id}/main/ or gallery/"""
 
         safe_name = self._sanitize_name(category_name or "no-category")
 
