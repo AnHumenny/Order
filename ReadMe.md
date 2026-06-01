@@ -129,14 +129,19 @@ Project/
 │   │           ├── auth.py                    # Admin authentication & access control
 │   │           └── config.py                  # Admin interface configuration
 │   │
-│   └── main.py                            # Entry point, router registration
+│   └── main.py                                # Entry point, router registration
 │
 ├── static/ 
-│      └── gallery/                        # Photogallery        
+│     └── gallery/                             # Photogallery      
+│          └── product/
+│              └── id category/
+│                  └── name category/
+│                      └── id subcategory/     # Subcategories (id_subcategory) can be nested recursively to any depth
+│                          └── file.webp      
 │
-├── alembic/                               # Database migrations
-├── .env                                   # Environment variables
-├── env_example                            # Example of environment variables
+├── alembic/                                   # Database migrations
+├── .env                                       # Environment variables
+├── env_example                                # Example of environment variables
 ├── .gitignore
 ├── alembic.ini
 └── requirements.txt

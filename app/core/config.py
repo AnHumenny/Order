@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     CACHE_NAMESPACE_SUBMENU: str = "sub_menu"
     CACHE_NAMESPACE_CATEGORY_TREE: str = "category_tree"
 
+    IMAGE_MAX_WIDTH: int = 1920
+    IMAGE_MAX_HEIGHT: int = 1920
+    IMAGE_WEBP_QUALITY: int = 85
+    IMAGE_THUMBNAIL_SIZE: int = 200
+    MAX_IMAGE_SIZE_MB: int = 5
+
     PORT: int = Field(default=8000, description="Server port")
 
     YOOKASSA_SHOP_ID: Optional[str] = Field(

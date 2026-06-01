@@ -1,6 +1,7 @@
 from typing import Optional, Sequence
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.modules.products.gallery import ProductImageUpdate
 from app.modules.products.gallery.models import ProductImage
 
 
@@ -21,8 +22,7 @@ class ProductImageRepository:
 
 
     async def get_by_id(self, image_id: int) -> Optional[ProductImage]:
-        """Get an image by its ID."""
-
+        """Get image by ID."""
         result = await self.session.execute(
             select(ProductImage).where(ProductImage.id == image_id)
         )
@@ -40,7 +40,7 @@ class ProductImageRepository:
         return result.scalars().all()
 
 
-    async def update(self, image_id: int, update_data: dict) -> Optional[ProductImage]:
+    async def update(self, image_id: int, update_data: dict) -> Optional[ProductImageUpdate]:
         """Update an image by ID with provided data."""
 
         await self.session.execute(
@@ -52,12 +52,18 @@ class ProductImageRepository:
         return await self.get_by_id(image_id)
 
 
-    async def delete(self, image_id: int) -> None:
-        """Delete image."""
-        await self.session.execute(
+    async def delete(self, image_id: int) -> dict:
+        """Delete image by ID. Returns dict with success status and message."""
+
+        result = await self.session.execute(
             delete(ProductImage).where(ProductImage.id == image_id)
         )
         await self.session.flush()
+
+        if result.rowcount > 0:
+            return {"success": True, "message": f"Image {image_id} deleted successfully"}
+        else:
+            return {"success": False, "message": f"Image {image_id} not found"}
 
 
     async def unset_main_image(self, product_id: int) -> None:

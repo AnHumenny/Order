@@ -1,75 +1,88 @@
 import uuid
+import io
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Optional
 from fastapi import UploadFile
 import aiofiles
-import logging
+from PIL import Image
+import re
 
-logger = logging.getLogger(__name__)
 
 class ImageUploadService:
-    """Service for handling product image uploads and deletions."""
+    """Service for handling product image uploads to the gallery directory."""
 
-    def __init__(self, upload_dir: str = "static/products"):
+    def __init__(self, upload_dir: str = "static/gallery/products/"):
         self.upload_dir = Path(upload_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
 
     async def save_image(
-        self,
-        file: UploadFile,
-        product_id: int,
-        is_main: bool = False
+            self,
+            file: UploadFile,
+            product_id: int,
+            category_id: Optional[int],
+            category_name: Optional[str],
+            is_main: bool = False
     ) -> Tuple[str, int, str]:
-        ext = Path(file.filename).suffix.lower()
-        filename = f"{product_id}_{uuid.uuid4().hex}{ext}"
-        subfolder = "main" if is_main else "gallery"
+        """Structure: static/products/gallery/{category_id}/{category_name}/{product_id}/main/ or gallery/"""
 
-        file_path = self.upload_dir / subfolder / filename
-        file_path.parent.mkdir(parents=True, exist_ok=True)
+        safe_name = self._sanitize_name(category_name or "no-category")
+
+        if category_id:
+            product_folder = self.upload_dir / str(category_id) / safe_name / str(product_id)
+        else:
+            product_folder = self.upload_dir / "0" / "no-category" / str(product_id)
+
+        product_folder.mkdir(parents=True, exist_ok=True)
+
+        filename = f"{uuid.uuid4().hex}.webp"
+        file_path = product_folder / filename
 
         content = await file.read()
-        file_size = len(content)
+        img = Image.open(io.BytesIO(content))
+
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+
+        if img.width > 1920 or img.height > 1920:
+            img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+
+        output = io.BytesIO()
+        img.save(output, format='WEBP', quality=85, method=6)
+        optimized_content = output.getvalue()
 
         async with aiofiles.open(file_path, 'wb') as f:
-            await f.write(content)
+            await f.write(optimized_content)
 
-        url = f"/static/products/{subfolder}/{filename}"
-        return url, file_size, file.content_type
+        file_size = len(optimized_content)
+
+        if category_id:
+            url = f"/static/products/{category_id}/{safe_name}/{product_id}/{filename}"
+        else:
+            url = f"/static/products/0/no-category/{product_id}/{filename}"
+
+        return url, file_size, "image/webp"
+
+
+    @staticmethod
+    def _sanitize_name(name: str) -> str:
+        """Clears the name for use on the way"""
+
+        name = re.sub(r'[<>:"/\\|?*]', '_', name)
+        name = name.strip().lower()
+        name = name[:50]
+        return name or "unknown"
 
 
     @staticmethod
     async def delete_image(image_url: str) -> bool:
-        """Delete image file by URL.
+        """Delete image file by URL."""
 
-        Args:
-            image_url: URL of the image to delete
-
-        Returns:
-            bool: True if file was deleted, False otherwise
-        """
         try:
             file_path = Path(image_url.lstrip('/'))
-
-            if not str(file_path).startswith('static/'):
-                return False
-
-            if not file_path.exists():
-                return False
-
-            if not file_path.is_file():
-                return False
-
-            file_path.unlink()
-            return True
-
-        except PermissionError:
-            return False
-
-        except OSError as e:
-            logger.error(f"OS error when deleting {image_url}: {e}")
-            return False
-
-        except Exception as e:
-            logger.error(f"Unexpected error when deleting {image_url}: {e}", exc_info=True)
-            return False
+            if file_path.exists() and str(file_path).startswith('static/'):
+                file_path.unlink()
+                return True
+        except (PermissionError, OSError):
+            pass
+        return False
