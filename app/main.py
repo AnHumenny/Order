@@ -1,14 +1,20 @@
 from fastapi import FastAPI
+from scalar_fastapi import get_scalar_api_reference
+
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+
 from starlette.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+
 from redis import asyncio as redis
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+
 from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.core.rate_limiter import setup_rate_limiter
+
 from app.modules.private_modules.admin import admin
 from app.modules.private_modules.auth.router import router as auth_router
 from app.modules.users.router import router as users_router
@@ -21,6 +27,7 @@ from app.modules.private_modules.payment.stripe.stripe_router import router as p
 from app.modules.analytics.router import router as analytics_router
 from app.modules.private_modules.currency.router import router as currencies_router
 from app.modules.private_modules.payment.yookassa.yookassa_router import router as yookassa_router
+
 import stripe
 import os
 
@@ -52,6 +59,8 @@ app = FastAPI(
     debug=settings.DEBUG,
     redirect_slashes=False,
     lifespan=lifespan,
+    docs_url="/swagger",
+    redoc_url=None,
 )
 
 app.add_middleware(
@@ -79,7 +88,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(yookassa_router, tags=["YooKassa"])
 app.include_router(payment_router, tags=["Stripe"])
-app.include_router(currencies_router)
+app.include_router(currencies_router, tags=["Currencies"])
 app.include_router(auth_router, tags=["Auth"])
 app.include_router(users_router, tags=["Users"])
 app.include_router(categories_router, tags=["Category"])
@@ -88,3 +97,12 @@ app.include_router(product_images_router, tags=["Product Images"])
 app.include_router(cart_router, tags=["Cart"])
 app.include_router(orders_router, tags=["Orders"])
 app.include_router(analytics_router, tags=["Analytics"])
+
+
+@app.get("/scalar", include_in_schema=False)
+async def scalar_html():
+    return get_scalar_api_reference(
+        openapi_url="/openapi.json",
+        title=settings.APP_NAME,
+    )
+

@@ -13,7 +13,6 @@ from app.modules.private_modules.auth.models import User
 
 router = APIRouter(
     prefix="/cart",
-    tags=["Cart"]
 )
 
 

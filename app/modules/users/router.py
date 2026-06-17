@@ -10,8 +10,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.modules.private_modules.auth.service import UserService
 
 router = APIRouter(
-    prefix="/users",
-    tags=["Users"]
+    prefix="/users"
 )
 
 

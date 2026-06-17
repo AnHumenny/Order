@@ -15,7 +15,6 @@ from app.modules.private_modules.auth.models import User
 
 router = APIRouter(
     prefix="/orders",
-    tags=["Orders"],
 )
 
 

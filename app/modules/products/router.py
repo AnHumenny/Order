@@ -22,7 +22,6 @@ from app.modules.products.service import ProductService
 
 router = APIRouter(
     prefix="/products",
-    tags=["Products"]
 )
 
 
