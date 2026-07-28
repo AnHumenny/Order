@@ -1,11 +1,14 @@
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from typing import Optional, List
-from dotenv import load_dotenv
+env_file = os.getenv("ENV_ORDER_FILE", ".env")
 
-load_dotenv()
-
+if Path(env_file).exists():
+    load_dotenv(env_file)
 
 class Settings(BaseSettings):
     """Application configuration settings."""
@@ -18,7 +21,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = Field(..., description="Frontend URL")
     REDIRECT_URL: str = Field(..., description="Base redirect URL for payments")
     ALLOWED_ORIGINS: str = Field(
-        default="http://localhost:3000,http://localhost:3001",
+        default="http://localhost:5173",
         description="Comma-separated list of allowed CORS origins"
     )
 
@@ -127,7 +130,7 @@ class Settings(BaseSettings):
         return f"{self.get_frontend_url()}/cancel"
 
     class Config:
-        env_file = ".env"
+        env_file = env_file
         env_file_encoding = "utf-8"
         case_sensitive = False
 

@@ -63,9 +63,12 @@ app = FastAPI(
     redoc_url=None,
 )
 
+
 app.add_middleware(
-    CORSMiddleware,  # type: ignore
-    allow_origins=os.getenv("ALLOWED_ORIGINS"),
+    CORSMiddleware,
+    allow_origins=[
+        os.getenv("FRONTEND_URL")
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -86,17 +89,17 @@ admin.mount_to(app)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-app.include_router(yookassa_router, tags=["YooKassa"])
-app.include_router(payment_router, tags=["Stripe"])
-app.include_router(currencies_router, tags=["Currencies"])
 app.include_router(auth_router, tags=["Auth"])
 app.include_router(users_router, tags=["Users"])
-app.include_router(categories_router, tags=["Category"])
 app.include_router(products_router, tags=["Products"])
+app.include_router(categories_router, tags=["Category"])
 app.include_router(product_images_router, tags=["Product Images"])
 app.include_router(cart_router, tags=["Cart"])
 app.include_router(orders_router, tags=["Orders"])
 app.include_router(analytics_router, tags=["Analytics"])
+app.include_router(currencies_router, tags=["Currencies"])
+app.include_router(yookassa_router, tags=["YooKassa"])
+app.include_router(payment_router, tags=["Stripe"])
 
 
 @app.get("/scalar", include_in_schema=False)

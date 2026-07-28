@@ -71,7 +71,6 @@ class PriceInfo(BaseModel):
     )
 
 
-
 class ProductRead(BaseModel):
     """Product read schema with category and images relations."""
 
@@ -83,6 +82,24 @@ class ProductRead(BaseModel):
     category_id: Optional[int] = None
     category: Optional["CategoryRead"] = None
     images: List["ProductImageRead"] = []
+    price_local: Optional[PriceInfo] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProductMainRead(BaseModel):
+    """Product read schema with category and main image."""
+
+    id: int
+    name: str
+    description: Optional[Dict[str, Any]] = None
+    price: Decimal
+    is_active: bool
+    category_id: Optional[int] = None
+    category: Optional["CategoryRead"] = None
+
+    images: list["ProductImageRead"] = []
+
     price_local: Optional[PriceInfo] = None
 
     model_config = ConfigDict(from_attributes=True)

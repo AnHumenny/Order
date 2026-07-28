@@ -16,7 +16,7 @@ from app.modules.products.schemas import (
     ProductCreate,
     ProductUpdate,
     ProductFilterParams,
-    ProductFilter,
+    ProductFilter, ProductMainRead,
 )
 from app.modules.products.service import ProductService
 
@@ -234,7 +234,7 @@ async def create_product(
     return product
 
 
-@router.get("/", response_model=list[ProductRead])
+@router.get("/", response_model=list[ProductMainRead])
 @limiter.limit(RateLimits.READ)
 async def list_products(
         request: Request,
