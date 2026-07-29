@@ -79,15 +79,17 @@ class Settings(BaseSettings):
     )
 
     RATE_LIMIT_ENABLED: bool = Field(default=True)
-    DEFAULT_RATE_LIMIT: str = Field(default="1000/hour")
-    RATE_LIMIT_AUTH: str = Field(default="5/minute")
-    RATE_LIMIT_WRITE: str = Field(default="30/minute")
-    RATE_LIMIT_READ: str = Field(default="100/minute")
+    DEFAULT_RATE_LIMIT: str = Field(default="1000/hour")                # подрезаем для теста
+    RATE_LIMIT_AUTH: str = Field(default="3/minute")
+    RATE_LIMIT_WRITE: str = Field(default="15/minute")
+    RATE_LIMIT_READ: str = Field(default="20/minute")
 
     TRUSTED_IPS: str = Field(
         default="127.0.0.1,172.17.0.1,10.0.0.0/8",
         description="Comma-separated trusted IPs (no rate limit)"
     )
+
+    path_to_image: str = "static/products/"
 
     @property
     def trusted_ips_list(self) -> List[str]:

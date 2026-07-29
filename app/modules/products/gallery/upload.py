@@ -6,12 +6,13 @@ from fastapi import UploadFile
 import aiofiles
 from PIL import Image
 import re
+from app.core.config import settings
 
 
 class ImageUploadService:
     """Service for handling product image uploads to the gallery directory."""
 
-    def __init__(self, upload_dir: str = "static/products/"):
+    def __init__(self, upload_dir: str = settings.path_to_image):
         self.upload_dir = Path(upload_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 

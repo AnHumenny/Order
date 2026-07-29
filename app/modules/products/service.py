@@ -59,7 +59,6 @@ class ProductService:
             )
             return None
 
-
     async def _enrich_product_for_list(
             self,
             product: Product
@@ -73,9 +72,18 @@ class ProductService:
             None
         )
 
+        description = None
+        if product.description:
+            description = product.description.copy()
+
+            if description.get("main"):
+                text = description["main"]
+                description["main"] = text[:50] + "…" if len(text) > 50 else text
+
         return ProductMainRead(
             id=product.id,
             name=product.name,
+            description=description,
             price=product.price,
             is_active=product.is_active,
             category_id=product.category_id,
