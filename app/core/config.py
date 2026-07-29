@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "Shop API"
     DEBUG: bool = False
+    ENABLE_API_DOCS: bool = False
 
     DATABASE_URL: str = Field(..., description="Database URL")
 

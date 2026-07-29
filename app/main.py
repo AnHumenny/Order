@@ -3,6 +3,7 @@ from scalar_fastapi import get_scalar_api_reference
 
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.requests import Request
 
 from starlette.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -57,10 +58,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
-    redirect_slashes=False,
     lifespan=lifespan,
-    docs_url="/swagger",
+    redirect_slashes=False,
+    docs_url="/swagger" if settings.ENABLE_API_DOCS else None,          # завернуть в статический маршрут
     redoc_url=None,
+    openapi_url="/openapi.json" if settings.ENABLE_API_DOCS else None,
 )
 
 
