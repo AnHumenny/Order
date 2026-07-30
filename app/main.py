@@ -1,7 +1,10 @@
+import os
+import stripe
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
 
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
 
@@ -29,30 +32,48 @@ from app.modules.analytics.router import router as analytics_router
 from app.modules.private_modules.currency.router import router as currencies_router
 from app.modules.private_modules.payment.yookassa.yookassa_router import router as yookassa_router
 
-import stripe
-import os
-
 setup_logging()
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-frontend_url = os.getenv("FRONTEND_URL")
+
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis_client = redis.from_url(
         settings.REDIS_URL,
-        encoding="utf8",
-        decode_responses=True
+        encoding="utf-8",
+        decode_responses=True,
     )
 
     FastAPICache.init(
         RedisBackend(redis_client),
         prefix=settings.CACHE_PREFIX,
-        expire=settings.CACHE_DEFAULT_EXPIRE
+        expire=settings.CACHE_DEFAULT_EXPIRE,
     )
     yield
     await redis_client.close()
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Adds basic security headers."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=()"
+        )
+
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+
+        return response
 
 
 app = FastAPI(
@@ -60,36 +81,51 @@ app = FastAPI(
     debug=settings.DEBUG,
     lifespan=lifespan,
     redirect_slashes=False,
-    docs_url="/swagger" if settings.ENABLE_API_DOCS else None,          # завернуть в статический маршрут
+    docs_url="/swagger" if settings.ENABLE_API_DOCS else None,
     redoc_url=None,
     openapi_url="/openapi.json" if settings.ENABLE_API_DOCS else None,
 )
 
 
+allowed_origins = list(settings.ALLOWED_ORIGINS)
+
+if FRONTEND_URL:
+    frontend = FRONTEND_URL.rstrip("/")
+    if frontend not in allowed_origins:
+        allowed_origins.append(frontend)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        os.getenv("FRONTEND_URL")
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+)
+
 
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
     session_cookie="admin_session",
     max_age=3600 * 24,
-    same_site="lax",
-    https_only=False,
+    same_site="strict",
+    https_only=True,
 )
 
 setup_rate_limiter(app)
 
+app.add_middleware(SecurityHeadersMiddleware)
+
+
 admin.mount_to(app)
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
 
 app.include_router(auth_router, tags=["Auth"])
 app.include_router(users_router, tags=["Users"])
@@ -110,4 +146,3 @@ async def scalar_html():
         openapi_url="/openapi.json",
         title=settings.APP_NAME,
     )
-
