@@ -7,8 +7,15 @@ from app.modules.category.repository import CategoryRepository
 from app.modules.private_modules.currency import get_currency_service
 from app.modules.products.models import Product
 from app.modules.products.repository import ProductRepository
-from app.modules.products.schemas import ProductCreate, ProductUpdate, ProductFilterParams, ProductFilter, ProductRead, \
-    PriceInfo
+from app.modules.products.schemas import (
+    ProductCreate,
+    ProductUpdate,
+    ProductFilterParams,
+    ProductFilter,
+    ProductRead,
+    PriceInfo,
+    ProductMainRead,
+)
 
 
 class ProductService:
@@ -26,7 +33,10 @@ class ProductService:
         self.currency_service = get_currency_service()
 
 
-    async def _add_converted_price(self, product: Product) -> Optional[PriceInfo]:
+    async def _add_converted_price(
+            self,
+            product: Product
+    ) -> Optional[PriceInfo]:
         """Helper method to add converted price info to product."""
 
         if not self.include_converted_price or self.currency == "USD":
@@ -44,12 +54,63 @@ class ProductService:
                 rate_used=converted.rate_used
             )
         except Exception as e:
-            logging.error(f"Failed to convert price for product {product.id}: {e}")
+            logging.error(
+                f"Failed to convert price for product {product.id}: {e}"
+            )
             return None
 
+    async def _enrich_product_for_list(
+            self,
+            product: Product
+    ) -> ProductMainRead:
+        """Prepare product data for catalog page with only main image."""
 
-    async def _enrich_product_with_currency(self, product: Product) -> ProductRead:
-        """Convert Product model to ProductRead schema with currency info."""
+        price_local = await self._add_converted_price(product)
+
+        main_image = next(
+            (img for img in product.images if img.is_main),
+            None
+        )
+
+        description = None
+        if product.description:
+            description = product.description.copy()
+
+            if description.get("main"):
+                text = description["main"]
+                description["main"] = text[:50] + "…" if len(text) > 50 else text
+
+        return ProductMainRead(
+            id=product.id,
+            name=product.name,
+            description=description,
+            price=product.price,
+            is_active=product.is_active,
+            category_id=product.category_id,
+            category=product.category,
+            images=[main_image] if main_image else [],
+            price_local=price_local
+        )
+
+
+    async def _enrich_products_list_with_currency(
+            self,
+            products: List[Product]
+    ) -> List[ProductMainRead]:
+        """Convert list of Product models to ProductMainRead schemas."""
+
+        result = []
+        for product in products:
+            enriched = await self._enrich_product_for_list(product)
+            result.append(enriched)
+        return result
+
+
+    async def _enrich_product_detail(
+            self,
+            product: Product
+    ) -> ProductRead:
+        """Prepare product data for detail page with all images."""
 
         price_local = await self._add_converted_price(product)
 
@@ -65,20 +126,43 @@ class ProductService:
             price_local=price_local
         )
 
-    async def _enrich_products_list_with_currency(self, products: List[Product]) -> List[ProductRead]:
-        """Convert list of Product models to ProductRead schemas with currency info."""
 
-        result = []
-        for product in products:
-            enriched = await self._enrich_product_with_currency(product)
-            result.append(enriched)
-        return result
+    async def get_list_products(
+            self,
+            skip: int = 0,
+            limit: int = 100,
+            include_inactive: bool = False
+    ) -> List[ProductMainRead]:
+        """Get list of products for catalog."""
+
+        products = await self.product_repo.get_all(
+            skip,
+            limit,
+            include_inactive
+        )
+
+        return await self._enrich_products_list_with_currency(products)
 
 
-    async def create_product(self, data: ProductCreate) -> Product:
+    async def get_product_by_id(
+            self,
+            product_id: int,
+    ) -> ProductRead:
+        """Get single product by id."""
+
+        product = await self.product_repo.get_product_by_id(product_id)
+
+        return await self._enrich_product_detail(product)
+
+
+    async def create_product(
+            self,
+            data: ProductCreate
+    ) -> Product:
         """Create product with category validation."""
 
         category = await self.category_repo.get_by_id(data.category_id)
+
         if not category:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -87,6 +171,7 @@ class ProductService:
 
         product_data = data.model_dump()
         product_data.pop("category", None)
+
         product = Product(**product_data)
 
         try:
@@ -100,44 +185,24 @@ class ProductService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Category does not exist",
                 )
+
             elif "unique constraint" in str(e).lower():
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Product with this SKU/article already exists",
                 )
+
             else:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Database integrity error",
                 )
 
-
-    async def get_list_products(
-            self,
-            skip: int = 0,
-            limit: int = 100,
-            include_inactive: bool = False
-    ) -> List[ProductRead]:
-        """Get list of all products with currency conversion."""
-
-        products = await self.product_repo.get_all(skip, limit, include_inactive)
-        return await self._enrich_products_list_with_currency(products)
-
-
-    async def get_product_by_id(
-            self,
-            product_id: int,
-    ) -> ProductRead:
-        """Get single product by id with currency conversion."""
-
-        product = await self.product_repo.get_product_by_id(product_id)
-        return await self._enrich_product_with_currency(product)
-
-
     async def delete_product(self, product_id: int):
         """Delete a product by ID with existence and usage validation."""
 
         can_delete = await self.product_repo.can_delete_product(product_id)
+
         if not can_delete:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -145,6 +210,7 @@ class ProductService:
             )
 
         deleted = await self.product_repo.delete(product_id)
+
         if not deleted:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -155,17 +221,18 @@ class ProductService:
         """Deactivate a product by ID."""
 
         deactivated = await self.product_repo.deactivate(product_id)
+
         if not deactivated:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Product not found",
             )
 
-
     async def activate_product(self, product_id: int):
         """Activate a product by ID."""
 
         activated = await self.product_repo.activate(product_id)
+
         if not activated:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -178,10 +245,11 @@ class ProductService:
             skip: int = 0,
             limit: int = 100,
             include_subcategories: bool = False
-    ) -> List[ProductRead]:
-        """Get all products from selected categories with currency conversion."""
+    ) -> List[ProductMainRead]:
+        """Get products from category."""
 
         category = await self.category_repo.get_by_id(category_id)
+
         if not category:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -189,18 +257,34 @@ class ProductService:
             )
 
         if include_subcategories:
-            category_ids = await self.category_repo.get_category_tree_ids(category_id)
-            products = await self.product_repo.get_products_by_categories(category_ids, skip, limit)
+            category_ids = await self.category_repo.get_category_tree_ids(
+                category_id
+            )
+
+            products = await self.product_repo.get_products_by_categories(
+                category_ids,
+                skip,
+                limit
+            )
+
         else:
-            products = await self.product_repo.get_product_by_category(category_id, skip, limit)
+            products = await self.product_repo.get_product_by_category(
+                category_id,
+                skip,
+                limit
+            )
 
         return await self._enrich_products_list_with_currency(products)
 
-
-    async def update_product(self, product_id: int, update_data: ProductUpdate) -> Product:
+    async def update_product(
+            self,
+            product_id: int,
+            update_data: ProductUpdate
+    ) -> Product:
         """Update product with validation and transaction management."""
 
         product = await self.product_repo.get_by_id(product_id)
+
         if not product:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -215,15 +299,21 @@ class ProductService:
                 detail="No fields to update"
             )
 
-        if 'name' in update_dict:
-            if not update_dict['name'] or not update_dict['name'].strip():
+        if "name" in update_dict:
+            if not update_dict["name"] or not update_dict["name"].strip():
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Product name cannot be empty"
                 )
 
-        if 'category_id' in update_dict and update_dict['category_id'] is not None:
-            category = await self.category_repo.get_by_id(update_dict['category_id'])
+        if (
+                "category_id" in update_dict
+                and update_dict["category_id"] is not None
+        ):
+            category = await self.category_repo.get_by_id(
+                update_dict["category_id"]
+            )
+
             if not category:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -231,12 +321,18 @@ class ProductService:
                 )
 
         try:
-            updated_product = await self.product_repo.update(product_id, update_dict)
+            updated_product = await self.product_repo.update(
+                product_id,
+                update_dict
+            )
+
             await self.product_repo.session.commit()
+
             return updated_product
 
         except IntegrityError:
             await self.product_repo.session.rollback()
+
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Database integrity error"
@@ -244,20 +340,25 @@ class ProductService:
 
         except Exception as e:
             await self.product_repo.session.rollback()
+
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Error updating product: {str(e)}"
             )
 
-
-    async def get_products(self, filters: ProductFilterParams) -> List[ProductRead]:
+    async def get_products(
+            self,
+            filters: ProductFilterParams
+    ) -> List[ProductMainRead]:
         """Get a list of products with filtering and currency conversion."""
 
         category_ids = None
 
         if filters.category_id:
             if filters.include_subcategories:
-                category_ids = await self.category_repo.get_category_tree_ids(filters.category_id)
+                category_ids = await self.category_repo.get_category_tree_ids(
+                    filters.category_id
+                )
             else:
                 category_ids = [filters.category_id]
 
@@ -273,18 +374,21 @@ class ProductService:
 
         return await self._enrich_products_list_with_currency(products)
 
-
     async def get_products_by_category_tree(
             self,
             category_ids: List[int],
             skip: int = 0,
             limit: int = 100
-    ) -> List[ProductRead]:
-        """Get products from multiple categories with currency conversion."""
+    ) -> List[ProductMainRead]:
+        """Get products from multiple categories."""
 
-        products = await self.product_repo.get_products_by_categories(category_ids, skip, limit)
+        products = await self.product_repo.get_products_by_categories(
+            category_ids,
+            skip,
+            limit
+        )
+
         return await self._enrich_products_list_with_currency(products)
-
 
     async def get_products_count_by_category(
             self,
@@ -294,6 +398,7 @@ class ProductService:
         """Get count of products in a category."""
 
         category = await self.category_repo.get_by_id(category_id)
+
         if not category:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -301,20 +406,36 @@ class ProductService:
             )
 
         if include_subcategories:
-            category_ids = await self.category_repo.get_category_tree_ids(category_id)
-            return await self.product_repo.count_products_by_categories(category_ids)
-        else:
-            return await self.product_repo.count_products_by_category(category_id)
+            category_ids = await self.category_repo.get_category_tree_ids(
+                category_id
+            )
 
+            return await self.product_repo.count_products_by_categories(
+                category_ids
+            )
 
-    async def get_products_with_category_path(self, product_id: int) -> dict:
-        """Get product with full category path and currency conversion."""
+        return await self.product_repo.count_products_by_category(
+            category_id
+        )
+
+    async def get_products_with_category_path(
+            self,
+            product_id: int
+    ) -> dict:
+        """Get product with full category path."""
 
         product_read = await self.get_product_by_id(product_id)
 
         if product_read.category_id:
-            category_path = await self.category_repo.get_category_path(product_read.category_id)
-            path_string = " > ".join([c.name for c in category_path]) if category_path else None
+            category_path = await self.category_repo.get_category_path(
+                product_read.category_id
+            )
+
+            path_string = (
+                " > ".join([c.name for c in category_path])
+                if category_path else None
+            )
+
         else:
             category_path = []
             path_string = None
@@ -324,7 +445,6 @@ class ProductService:
             "category_path": category_path,
             "category_path_string": path_string
         }
-
 
     async def search_products_by_name(
             self,
@@ -344,36 +464,46 @@ class ProductService:
             )
 
             result = []
+
             for product in products:
                 main_image_url = None
                 has_images = False
 
-                if product.images and len(product.images) > 0:
+                if product.images:
                     has_images = True
-                    main_img = next((img for img in product.images if img.is_main), None)
+
+                    main_img = next(
+                        (img for img in product.images if img.is_main),
+                        None
+                    )
+
                     if main_img:
                         main_image_url = main_img.image_url
                     else:
                         main_image_url = product.images[0].image_url
 
-                result.append(ProductFilter(
-                    id=product.id,
-                    name=product.name,
-                    description=product.description,
-                    price=float(product.price),
-                    category_id=product.category_id,
-                    category_name=product.category.name if product.category else None,
-                    is_active=product.is_active,
-                    has_images=has_images,
-                    main_image_url=main_image_url
-                ))
+                result.append(
+                    ProductFilter(
+                        id=product.id,
+                        name=product.name,
+                        description=product.description,
+                        price=float(product.price),
+                        category_id=product.category_id,
+                        category_name=(
+                            product.category.name
+                            if product.category else None
+                        ),
+                        is_active=product.is_active,
+                        has_images=has_images,
+                        main_image_url=main_image_url
+                    )
+                )
 
             return result
 
         except Exception as e:
             logging.error(f"Search error: {e}")
             return []
-
 
     async def search_products_with_count(
             self,
@@ -382,7 +512,7 @@ class ProductService:
             limit: int = 20,
             only_active: bool = True
     ) -> Tuple[List[Product], int]:
-        """Search products and return total count."""
+        """Search products and return total quantity."""
 
         if not name or len(name.strip()) < 2:
             raise HTTPException(
@@ -400,8 +530,8 @@ class ProductService:
     async def search_products_advanced(
             self,
             filters: ProductFilterParams
-    ) -> List[ProductRead]:
-        """Advanced product search using filters with currency conversion."""
+    ) -> List[ProductMainRead]:
+        """Advanced product search."""
 
         if filters.search and len(filters.search.strip()) < 2:
             raise HTTPException(
@@ -417,11 +547,16 @@ class ProductService:
                 )
 
         category_ids = None
+
         if filters.category_id:
             if filters.include_subcategories:
-                category_ids = await self.category_repo.get_category_tree_ids(filters.category_id)
+                category_ids = await self.category_repo.get_category_tree_ids(
+                    filters.category_id
+                )
+
                 if not category_ids:
                     category_ids = [filters.category_id]
+
             else:
                 category_ids = [filters.category_id]
 
@@ -437,12 +572,12 @@ class ProductService:
 
         return await self._enrich_products_list_with_currency(products)
 
-
     async def search_products_advanced_with_count(
             self,
             filters: ProductFilterParams
-    ) -> Tuple[List[ProductRead], int]:
-        """Advanced product search with total quantity calculation and currency conversion."""
+    ) -> Tuple[List[ProductMainRead], int]:
+        """Advanced search with count."""
+
         if filters.search and len(filters.search.strip()) < 2:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -457,11 +592,16 @@ class ProductService:
                 )
 
         category_ids = None
+
         if filters.category_id:
             if filters.include_subcategories:
-                category_ids = await self.category_repo.get_category_tree_ids(filters.category_id)
+                category_ids = await self.category_repo.get_category_tree_ids(
+                    filters.category_id
+                )
+
                 if not category_ids:
                     category_ids = [filters.category_id]
+
             else:
                 category_ids = [filters.category_id]
 
@@ -475,5 +615,8 @@ class ProductService:
             limit=filters.limit
         )
 
-        enriched_products = await self._enrich_products_list_with_currency(products)
+        enriched_products = await self._enrich_products_list_with_currency(
+            products
+        )
+
         return enriched_products, total

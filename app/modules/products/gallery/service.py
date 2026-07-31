@@ -43,7 +43,6 @@ class ProductImageService:
             raise HTTPException(status_code=404, detail="Product not found")
 
         category_id = row[0]
-        category_name = row[1]
 
         current_count = await self.image_repo.count_by_product(product_id)
         if current_count >= 7:
@@ -56,8 +55,6 @@ class ProductImageService:
             file=file,
             product_id=product_id,
             category_id=category_id,
-            category_name=category_name,
-            is_main=is_main
         )
 
         image_data = {

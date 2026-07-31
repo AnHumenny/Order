@@ -1,7 +1,7 @@
 ----------------------------------------------------
 ----------------------------------------------------
 ### React + TypeScript + Vite
-[![YouTube](https://img.shields.io/badge/YouTube-Video_rewiev-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=MsaDlukeppg)
+[![YouTube](https://img.shields.io/badge/YouTube-Video_rewiev-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/57KA-9s7QD4?si=ODUezMeIz8SNlg7E)
 ----------------------------------------------------
 ----------------------------------------------------
 
@@ -131,13 +131,11 @@ Project/
 │   │
 │   └── main.py                                # Entry point, router registration
 │
-├── static/ 
-│     └── gallery/                             # Photogallery      
-│          └── product/
-│              └── id category/
-│                  └── name category/
-│                      └── id subcategory/     # Subcategories (id_subcategory) can be nested recursively to any depth
-│                          └── file.webp      
+├── static/                    
+│      └── product/# Photogallery  
+│          └── id category/
+│              └── id subcategory/     # Subcategories (id_subcategory) can be nested recursively to any depth
+│                  └── file.webp      
 │
 ├── alembic/                                   # Database migrations
 ├── .env                                       # Environment variables

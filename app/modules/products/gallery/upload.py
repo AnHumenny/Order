@@ -6,32 +6,28 @@ from fastapi import UploadFile
 import aiofiles
 from PIL import Image
 import re
+from app.core.config import settings
 
 
 class ImageUploadService:
     """Service for handling product image uploads to the gallery directory."""
 
-    def __init__(self, upload_dir: str = "static/gallery/products/"):
+    def __init__(self, upload_dir: str = settings.path_to_image):
         self.upload_dir = Path(upload_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
-
 
     async def save_image(
             self,
             file: UploadFile,
             product_id: int,
-            category_id: Optional[int],
-            category_name: Optional[str],
-            is_main: bool = False
+            category_id: Optional[int]
     ) -> Tuple[str, int, str]:
-        """Structure: static/products/gallery/{category_id}/{category_name}/{product_id}/main/ or gallery/"""
+        """Structure: static/products/{category_id}/{product_id}/"""
 
-        safe_name = self._sanitize_name(category_name or "no-category")
-
-        if category_id:
-            product_folder = self.upload_dir / str(category_id) / safe_name / str(product_id)
+        if category_id is not None:
+            product_folder = self.upload_dir / str(category_id) / str(product_id)
         else:
-            product_folder = self.upload_dir / "0" / "no-category" / str(product_id)
+            product_folder = self.upload_dir / "0" / str(product_id)
 
         product_folder.mkdir(parents=True, exist_ok=True)
 
@@ -41,25 +37,25 @@ class ImageUploadService:
         content = await file.read()
         img = Image.open(io.BytesIO(content))
 
-        if img.mode in ('RGBA', 'P'):
-            img = img.convert('RGB')
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
 
         if img.width > 1920 or img.height > 1920:
             img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
 
         output = io.BytesIO()
-        img.save(output, format='WEBP', quality=85, method=6)
+        img.save(output, format="WEBP", quality=85, method=6)
         optimized_content = output.getvalue()
 
-        async with aiofiles.open(file_path, 'wb') as f:
+        async with aiofiles.open(file_path, "wb") as f:
             await f.write(optimized_content)
 
         file_size = len(optimized_content)
 
-        if category_id:
-            url = f"/static/products/{category_id}/{safe_name}/{product_id}/{filename}"
+        if category_id is not None:
+            url = f"/static/products/{category_id}/{product_id}/{filename}"
         else:
-            url = f"/static/products/0/no-category/{product_id}/{filename}"
+            url = f"/static/products/0/{product_id}/{filename}"
 
         return url, file_size, "image/webp"
 
