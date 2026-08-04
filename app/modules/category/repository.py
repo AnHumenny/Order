@@ -322,14 +322,14 @@ class CategoryRepository:
                 select(func.count())
                 .select_from(Product)
                 .where(Product.category_id.in_(category_ids))
-                .where(Product.is_active == True)
+                .where(Product.is_active)
             )
         else:
             result = await self.session.execute(
                 select(func.count())
                 .select_from(Product)
                 .where(Product.category_id == category_id)
-                .where(Product.is_active == True)
+                .where(Product.is_active)
             )
 
         return result.scalar() or 0

@@ -1,3 +1,4 @@
+from jose import JWTError
 from typing import Optional
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer, HTTPBearer
@@ -6,11 +7,9 @@ from sqlalchemy import select
 from app.core.database import get_session
 from app.core.security import decode_access_token
 from app.modules.private_modules.auth.models import User
+from fastapi import HTTPException, status
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
-
-from jose import JWTError
-from fastapi import HTTPException, status
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme),
@@ -108,7 +107,7 @@ async def get_current_user_optional(
 
     except JWTError:
         return None
-    except (ValueError, AttributeError, KeyError) as e:
+    except (ValueError, AttributeError, KeyError):
         return None
 
     result = await session.execute(select(User).where(User.id == user_id))
