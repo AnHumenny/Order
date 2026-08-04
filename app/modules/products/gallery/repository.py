@@ -39,7 +39,6 @@ class ProductImageRepository:
         )
         return result.scalars().all()
 
-
     async def update(self, image_id: int, update_data: dict) -> Optional[ProductImageUpdate]:
         """Update an image by ID with provided data."""
 
@@ -49,7 +48,12 @@ class ProductImageRepository:
             .values(**update_data)
         )
         await self.session.flush()
-        return await self.get_by_id(image_id)
+
+        product_image = await self.get_by_id(image_id)
+        if not product_image:
+            return None
+
+        return ProductImageUpdate.from_orm(product_image)
 
 
     async def delete(self, image_id: int) -> dict:
@@ -60,7 +64,7 @@ class ProductImageRepository:
         )
         await self.session.flush()
 
-        if result.rowcount > 0:
+        if result.rowcount > 0:  # type: ignore[attr-defined]
             return {"success": True, "message": f"Image {image_id} deleted successfully"}
         else:
             return {"success": False, "message": f"Image {image_id} not found"}
