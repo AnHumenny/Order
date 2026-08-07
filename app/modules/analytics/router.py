@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
@@ -20,19 +22,19 @@ async def get_analytics_service(session: AsyncSession = Depends(get_session)) ->
 @limiter.limit(RateLimits.ANALYTICS)
 async def get_user_purchase_analytics(
         request: Request,
-        current_user: User = Depends(get_current_user),
+        user: User = Depends(get_current_user),
         service: AnalyticsService = Depends(get_analytics_service)
-):
+    ) -> dict[str, dict[str, list[str] | list[int] | list[Decimal]]]:
     """Get analytics of user's purchases for current year"""
-    return await service.get_user_purchase_analytics(current_user.id)
+    return await service.get_user_purchase_analytics(user.id)
 
 
 @router.get("/user-stats")
 @limiter.limit(RateLimits.ANALYTICS)
 async def get_user_stats(
         request: Request,
-        current_user: User = Depends(get_current_user),
+        user: User = Depends(get_current_user),
         service: AnalyticsService = Depends(get_analytics_service)
-):
+    ) -> dict[str, int | float]:
     """Get user statistics: total orders and total spent"""
-    return await service.get_user_stats(current_user.id)
+    return await service.get_user_stats(user.id)
