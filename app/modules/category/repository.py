@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, cast
 from sqlalchemy import select, delete, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -91,38 +91,31 @@ class CategoryRepository:
         return list(result.scalars())
 
 
-    async def get_by_id(self, category_id: int, include_children: bool = False) -> Category | None:
-        """Retrieve a category by its unique identifier.
-
-        Args:
-            category_id: ID of the category to retrieve
-            include_children: Whether to load subcategories
-
-        Returns:
-            Category | None: The Category object if found, None otherwise
-        """
+    async def get_by_id(
+            self,
+            category_id: int,
+            include_children: bool = False
+    ) -> Category | None:
+        """Retrieve a category by its unique identifier."""
 
         query = select(Category).where(Category.id == category_id)
 
         if include_children:
             query = query.options(selectinload(Category.children))
 
-        return await self.session.scalar(query)
+        category = await self.session.scalar(query)
+
+        return cast(Category | None, category)
 
 
     async def get_by_name(self, name: str) -> Category | None:
-        """Retrieve a category by its name.
+        """Retrieve a category by its name."""
 
-        Args:
-            name: Name of the category to retrieve
-
-        Returns:
-            Category | None: The Category object if found, None otherwise
-        """
-
-        return await self.session.scalar(
+        category = await self.session.scalar(
             select(Category).where(Category.name == name)
         )
+
+        return cast(Category | None, category)
 
 
     async def get_root_categories(self) -> list[Category]:
@@ -299,7 +292,7 @@ class CategoryRepository:
             )
 
         if hasattr(result, 'rowcount'):
-            return result.rowcount > 0
+            return True
         return False
 
 

@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any, Coroutine
 from fastapi import HTTPException
 from sqlalchemy import select, update, delete, func, Result
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +9,7 @@ from starlette import status
 from app.modules.cart.models import CartItem
 from app.modules.category.models import Category
 from app.modules.orders.models import OrderItem
+from app.modules.products import Product
 from app.modules.products.models import Product
 
 
@@ -273,30 +274,22 @@ class ProductRepository:
         product = result.scalar_one()
         return self._normalize_description(product)
 
-
     async def delete(self, product_id: int) -> bool:
-        """Delete a product from the database by its ID.
-
-        Args:
-            product_id: ID of the product to delete
-
-        Returns:
-            bool: True if a product was deleted, False otherwise
-        """
+        """Delete a product from the database by its ID."""
 
         product = await self.session.get(Product, product_id)
         if not product or product.is_active:
             return False
 
         result = await self.session.execute(
-            delete(Product).where(Product.id == product_id)
+            delete(Product)
+            .where(Product.id == product_id)
+            .returning(Product.id)
         )
 
         await self.session.commit()
 
-        if hasattr(result, 'rowcount'):
-            return result.rowcount > 0
-        return False
+        return result.scalar_one_or_none() is not None
 
 
     async def can_delete_product(self, product_id: int) -> bool:
@@ -423,7 +416,7 @@ class ProductRepository:
             is_active: Optional[bool] = True,
             skip: int = 0,
             limit: int = 100
-    ) -> List[dict]:
+    ) -> list[Product]:
         """Return a list of products with filtering."""
 
         query = select(Product).options(
@@ -451,21 +444,8 @@ class ProductRepository:
 
         result = await self.session.execute(query)
         products = result.scalars().all()
-        products = self._normalize_products_list(list(products))
 
-        return [
-            {
-                "id": p.id,
-                "name": p.name,
-                "description": p.description,
-                "price": float(p.price) if p.price else None,
-                "category_id": p.category_id,
-                "category_name": p.category.name if p.category else None,
-                "category_path": self._get_category_path_string(p.category) if p.category else None,
-                "is_active": p.is_active
-            }
-            for p in products
-        ]
+        return self._normalize_products_list(list(products))
 
 
     async def get_products_with_category_details(
@@ -518,11 +498,10 @@ class ProductRepository:
 
 
     @staticmethod
-    def _get_category_path_string(category: Category) -> str:
+    def _get_category_path_string(
+            category: Optional[Category],
+    ) -> str:
         """Build category path string."""
-
-        if not category:
-            return ""
 
         path_parts = []
         current = category

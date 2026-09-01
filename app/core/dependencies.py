@@ -12,28 +12,20 @@ from fastapi import HTTPException, status
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme),
-                           session: AsyncSession = Depends(get_session)) -> User:
-    """FastAPI dependency to get the currently authenticated user.
-
-    Validates the JWT access token and retrieves the corresponding user
-    from the database. Used as a dependency in protected route handlers.
-
-    Args:
-        token: JWT access token extracted from Authorization header
-        session: Database session dependency
-
-    Returns:
-        User: Authenticated user instance
-
-    Raises:
-        HTTPException: 401 if token is invalid or expired
-        HTTPException: 404 if user doesn't exist in database
-    """
+async def get_current_user(
+        token: str = Depends(oauth2_scheme),
+        session: AsyncSession = Depends(get_session)
+) -> User:
+    """Get the currently authenticated user."""
 
     try:
         payload = decode_access_token(token)
-        user_id = int(payload.get("sub"))
+        sub = payload.get("sub")
+
+        if sub is None:
+            raise ValueError("Token payload does not contain 'sub'")
+
+        user_id = int(sub)
 
     except JWTError:
         raise HTTPException(
@@ -42,14 +34,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    except (ValueError, AttributeError, KeyError) as e:
+    except (ValueError, TypeError, AttributeError, KeyError) as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid token payload: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    result = await session.execute(select(User).where(User.id == user_id))
+    result = await session.execute(
+        select(User).where(User.id == user_id)
+    )
     user = result.scalar_one_or_none()
 
     if not user:
@@ -89,6 +83,7 @@ async def get_current_admin(
 
 security = HTTPBearer(auto_error=False)
 
+
 async def get_current_user_optional(
         token: Optional[str] = Depends(oauth2_scheme, use_cache=True),
         session: AsyncSession = Depends(get_session)
@@ -103,14 +98,21 @@ async def get_current_user_optional(
 
     try:
         payload = decode_access_token(token)
-        user_id = int(payload.get("sub"))
+        sub = payload.get("sub")
+
+        if sub is None:
+            return None
+
+        user_id = int(sub)
 
     except JWTError:
         return None
-    except (ValueError, AttributeError, KeyError):
+    except (ValueError, TypeError):
         return None
 
-    result = await session.execute(select(User).where(User.id == user_id))
+    result = await session.execute(
+        select(User).where(User.id == user_id)
+    )
     user = result.scalar_one_or_none()
 
     if not user:

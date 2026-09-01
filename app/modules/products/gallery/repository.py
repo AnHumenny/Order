@@ -39,7 +39,12 @@ class ProductImageRepository:
         )
         return result.scalars().all()
 
-    async def update(self, image_id: int, update_data: dict) -> Optional[ProductImageUpdate]:
+
+    async def update(
+            self,
+            image_id: int,
+            update_data: dict,
+    ) -> Optional[ProductImageUpdate]:
         """Update an image by ID with provided data."""
 
         await self.session.execute(
@@ -53,7 +58,7 @@ class ProductImageRepository:
         if not product_image:
             return None
 
-        return ProductImageUpdate.from_orm(product_image)
+        return ProductImageUpdate.model_validate(product_image)
 
 
     async def delete(self, image_id: int) -> dict:
