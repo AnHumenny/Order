@@ -217,6 +217,7 @@ class ProductService:
                 detail=f"Product with id {product_id} not found",
             )
 
+
     async def deactivate_product(self, product_id: int):
         """Deactivate a product by ID."""
 
@@ -275,6 +276,7 @@ class ProductService:
             )
 
         return await self._enrich_products_list_with_currency(products)
+
 
     async def update_product(
             self,
@@ -345,6 +347,7 @@ class ProductService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Error updating product: {str(e)}"
             )
+
 
     async def get_products(
             self,

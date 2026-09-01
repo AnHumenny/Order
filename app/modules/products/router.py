@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Any
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,7 +7,9 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_admin
 from app.core.rate_limiter import RateLimits, limiter
 from app.modules.category.models import Category
+from app.modules.private_modules.auth.models import User
 from app.modules.private_modules.currency.dependencies import get_user_currency
+from app.modules.products import Product
 from app.modules.products.dependencies import get_product_service
 from app.modules.products.repository import ProductRepository
 from app.modules.category.repository import CategoryRepository
@@ -34,7 +36,7 @@ async def search_products(
         limit: int = Query(20, ge=1, le=100),
         only_active: bool = Query(True),
         session: AsyncSession = Depends(get_session)
-):
+) -> list[ProductFilter]:
     """Search for products by name."""
 
     service = ProductService(
@@ -62,7 +64,7 @@ async def search_products_advanced(
         skip: int = Query(0, ge=0, description="Сколько пропустить"),
         limit: int = Query(20, ge=1, le=100, description="Сколько вернуть"),
         session: AsyncSession = Depends(get_session)
-):
+) -> list[ProductMainRead]:
     """Advanced product search with filtering.
 
     - **search**: Search by product name and description
@@ -113,7 +115,7 @@ async def search_products_with_count(
         limit: int = Query(20, ge=1, le=100),
         only_active: bool = Query(True),
         session: AsyncSession = Depends(get_session)
-):
+) -> dict[str, Any]:
     """Search with counting quantity."""
 
     service = ProductService(
@@ -141,7 +143,7 @@ async def get_products(
         request: Request,
         filters: ProductFilterParams = Depends(),
         session: AsyncSession = Depends(get_session),
-):
+) -> list[ProductMainRead]:
     """Get products with filtering and pagination."""
 
     service = ProductService(
@@ -160,7 +162,7 @@ async def list_products_by_category(
         limit: int = Query(10, ge=1, le=100),
         include_subcategories: bool = Query(False),
         session: AsyncSession = Depends(get_session),
-):
+) -> list[ProductMainRead] :
     """Get list of all products in selected category."""
 
     service = ProductService(
@@ -182,7 +184,7 @@ async def count_products_by_category(
         category_id: int,
         include_subcategories: bool = Query(False),
         session: AsyncSession = Depends(get_session),
-):
+) -> dict[str, int | bool]:
     """Get count of products in a category."""
 
     service = ProductService(
@@ -207,7 +209,7 @@ async def get_product(
         product_id: int,
         product_service: ProductService = Depends(get_product_service),
         currency: str = Depends(get_user_currency)
-):
+) -> ProductRead:
     """Get a specific product by ID with price in user's currency."""
 
     product_service.currency = currency
@@ -220,8 +222,8 @@ async def create_product(
         request: Request,
         data: ProductCreate,
         session: AsyncSession = Depends(get_session),
-        admin=Depends(get_current_admin)
-):
+        admin: User = Depends(get_current_admin),
+) -> Product:
     """Create product with category (only admin)."""
 
     service = ProductService(
@@ -242,7 +244,7 @@ async def list_products(
         skip: int = Query(0, ge=0),
         limit: int = Query(20, ge=1, le=100),
         include_inactive: bool = Query(False)
-):
+) -> List[ProductMainRead]:
     """List all products."""
 
     service = ProductService(
@@ -258,8 +260,8 @@ async def delete_product(
         request: Request,
         product_id: int,
         session: AsyncSession = Depends(get_session),
-        admin=Depends(get_current_admin),
-):
+        admin: User = Depends(get_current_admin),
+) -> dict[str, str] :
     """Delete item by id."""
 
     service = ProductService(
@@ -277,8 +279,8 @@ async def product_to_deactivate(
         request: Request,
         product_id: int,
         session: AsyncSession = Depends(get_session),
-        admin=Depends(get_current_admin),
-):
+        admin: User = Depends(get_current_admin),
+) -> dict[str, str]:
     """deactivate item by id."""
 
     service = ProductService(
@@ -296,8 +298,8 @@ async def product_to_activate(
         request: Request,
         product_id: int,
         session: AsyncSession = Depends(get_session),
-        admin=Depends(get_current_admin),
-):
+        admin: User = Depends(get_current_admin),
+) -> dict[str, str]:
     """activate item by id."""
 
     service = ProductService(
@@ -316,8 +318,8 @@ async def update_product(
         product_id: int,
         product_update: ProductUpdate,
         session: AsyncSession = Depends(get_session),
-        admin=Depends(get_current_admin)
-):
+        admin: User = Depends(get_current_admin),
+) -> Product:
     """Update product information."""
 
     service = ProductService(
