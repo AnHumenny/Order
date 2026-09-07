@@ -1,4 +1,7 @@
 from datetime import datetime
+from decimal import Decimal
+from typing import Any, Coroutine
+
 from app.modules.analytics.repository import AnalyticsRepository
 
 
@@ -9,7 +12,10 @@ class AnalyticsService:
         self.repository = repository
 
 
-    async def get_user_purchase_analytics(self, user_id: int):
+    async def get_user_purchase_analytics(
+            self,
+            user_id: int
+    ) -> dict[str, dict[str, list[str] | list[int] | list[Decimal]]]:
         """Get analytics on user purchases for the current year"""
         current_year = datetime.now().year
 
@@ -27,8 +33,8 @@ class AnalyticsService:
         product_ids = [item.product_id for item in items]
         products = await self.repository.get_products_by_ids(product_ids)
 
-        product_counts = {}
-        product_sums = {}
+        product_counts: dict[str, int] = {}
+        product_sums: dict[str, Decimal] = {}
 
         for item in items:
             product = products.get(item.product_id)
@@ -36,8 +42,12 @@ class AnalyticsService:
                 continue
 
             name = product.name
+
             product_counts[name] = product_counts.get(name, 0) + item.quantity
-            product_sums[name] = product_sums.get(name, 0) + (item.price * item.quantity)
+            product_sums[name] = (
+                    product_sums.get(name, Decimal("0"))
+                    + item.price * item.quantity
+            )
 
         top_by_count = sorted(product_counts.items(), key=lambda x: x[1], reverse=True)[:6]
         top_by_sum = sorted(product_sums.items(), key=lambda x: x[1], reverse=True)[:6]
@@ -54,7 +64,7 @@ class AnalyticsService:
         }
 
 
-    async def get_user_stats(self, user_id: int):
+    async def get_user_stats(self, user_id: int) -> dict[str, int | float]:
         """Get user statistics (total orders and amount)"""
         orders = await self.repository.get_all_user_orders(user_id)
 

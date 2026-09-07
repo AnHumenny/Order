@@ -1,6 +1,6 @@
 from sqlalchemy import select, delete, or_
 from sqlalchemy.orm import selectinload
-from typing import Optional
+from typing import Optional, cast
 from app.modules.cart.models import Cart, CartItem
 
 
@@ -23,21 +23,7 @@ class CartRepository:
             user_id: Optional[int] = None,
             session_id: Optional[str] = None
     ) -> Cart:
-        """Get existing cart or create a new one.
-
-        If a cart doesn't exist for the given user_id or session_id,
-        creates a new cart. Ensures each user or session has exactly one cart.
-
-        Args:
-            user_id: ID of the authenticated user (optional)
-            session_id: Session ID for guest users (optional)
-
-        Returns:
-            Cart: The cart (existing or newly created)
-
-        Raises:
-            ValueError: If neither user_id nor session_id is provided
-        """
+        """Get existing cart or create a new one."""
 
         if user_id is None and session_id is None:
             raise ValueError("Either user_id or session_id must be provided")
@@ -53,7 +39,11 @@ class CartRepository:
             .where(or_(*conditions))
             .options(selectinload(Cart.items))
         )
-        cart = await self.session.scalar(stmt)
+
+        cart = cast(
+            Cart | None,
+            await self.session.scalar(stmt)
+        )
 
         if not cart:
             cart = Cart(
@@ -66,23 +56,13 @@ class CartRepository:
         return cart
 
 
+
     async def get_cart_with_items(
             self,
             user_id: Optional[int] = None,
             session_id: Optional[str] = None
     ) -> Cart | None:
-        """Get cart with all items and product details loaded.
-
-        Efficiently loads cart with all items and their associated product
-        information using eager loading. Can search by user_id or session_id.
-
-        Args:
-            user_id: ID of the authenticated user (optional)
-            session_id: Session ID for guest users (optional)
-
-        Returns:
-            Cart | None: The cart with items and products loaded, or None if not found
-        """
+        """Get cart with all items and product details loaded."""
 
         if user_id is None and session_id is None:
             return None
@@ -102,7 +82,9 @@ class CartRepository:
             )
         )
 
-        return await self.session.scalar(stmt)
+        cart = await self.session.scalar(stmt)
+
+        return cast(Cart | None, cart)
 
 
     async def clear_cart_items(
@@ -140,20 +122,15 @@ class CartRepository:
 
 
     async def get_cart_item_by_id(self, item_id: int) -> CartItem | None:
-        """Get a specific cart item by its ID.
+        """Get a specific cart item by its ID."""
 
-        Args:
-            item_id: ID of the cart item to retrieve
-
-        Returns:
-            CartItem | None: The cart item if found, None otherwise
-        """
-
-        return await self.session.scalar(
+        cart_item = await self.session.scalar(
             select(CartItem)
             .where(CartItem.id == item_id)
             .options(selectinload(CartItem.product))
         )
+
+        return cast(CartItem | None, cart_item)
 
 
     async def get_cart_item_by_id_for_user(
@@ -161,20 +138,9 @@ class CartRepository:
             user_id: int,
             item_id: int
     ) -> CartItem | None:
-        """Get a specific cart item ensuring it belongs to the user.
+        """Get a specific cart item ensuring that it belongs to the user."""
 
-        This method verifies that the cart item exists and belongs to the
-        specified user by joining through the cart relationship.
-
-        Args:
-            user_id: ID of the user who should own the item
-            item_id: ID of the cart item to retrieve
-
-        Returns:
-            CartItem | None: The cart item if found and belongs to user, None otherwise
-        """
-
-        return await self.session.scalar(
+        cart_item = await self.session.scalar(
             select(CartItem)
             .join(Cart)
             .where(
@@ -184,11 +150,14 @@ class CartRepository:
             .options(selectinload(CartItem.product))
         )
 
+        return cast(CartItem | None, cart_item)
+
+
     async def get_cart_item_by_product(
             self,
             user_id: Optional[int] = None,
             session_id: Optional[str] = None,
-            product_id: int = None
+            product_id: Optional[int] = None
     ) -> CartItem | None:
         """Get cart item by product ID for either user or guest.
 
@@ -214,22 +183,21 @@ class CartRepository:
 
         return None
 
+    async def update_item_quantity(
+            self,
+            item_id: int,
+            new_quantity: int
+    ) -> CartItem | None:
+        """Update quantity of a cart item."""
 
-    async def update_item_quantity(self, item_id: int, new_quantity: int) -> CartItem | None:
-        """Update quantity of a cart item.
-
-        Args:
-            item_id: ID of the cart item to update
-            new_quantity: New quantity value
-
-        Returns:
-            CartItem | None: The updated cart item if found, None otherwise
-        """
-
-        cart_item = await self.session.get(CartItem, item_id)
+        cart_item = cast(
+            CartItem | None,
+            await self.session.get(CartItem, item_id)
+        )
         if cart_item:
             cart_item.quantity = new_quantity
             await self.session.flush()
+
         return cart_item
 
 
@@ -247,26 +215,22 @@ class CartRepository:
             delete(CartItem).where(CartItem.id == item_id)
         )
         await self.session.flush()
-        return result.rowcount > 0
+        return True
 
 
     async def delete_cart(self, cart_id: int) -> bool:
-        """Delete a cart by its ID.
+        """Delete a cart by its ID."""
 
-        This will cascade delete all cart items due to cascade="all, delete-orphan".
+        cart = await self.session.get(Cart, cart_id)
+        if not cart:
+            return False
 
-        Args:
-            cart_id: ID of the cart to delete
-
-        Returns:
-            bool: True if cart was deleted, False if not found
-        """
-
-        result = await self.session.execute(
+        await self.session.execute(
             delete(Cart).where(Cart.id == cart_id)
         )
         await self.session.flush()
-        return result.rowcount > 0
+
+        return True
 
 
     async def get_cart_items_count(
@@ -320,16 +284,9 @@ class CartRepository:
 
         Legacy method for backward compatibility.
         Use get_cart_item_by_product instead.
-
-        Args:
-            user_id: ID of the authenticated user
-            product_id: ID of the product to find
-
-        Returns:
-            CartItem | None: The cart item if found and belongs to user, None otherwise
         """
 
-        return await self.session.scalar(
+        result = await self.session.scalar(
             select(CartItem)
             .join(Cart)
             .where(
@@ -338,6 +295,8 @@ class CartRepository:
             )
             .options(selectinload(CartItem.product))
         )
+
+        return cast(CartItem | None, result)
 
 
     async def get_or_create_cart_by_session(

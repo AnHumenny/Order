@@ -1,12 +1,15 @@
 import os
+from collections.abc import AsyncIterator
+
 import stripe
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
 
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
+from starlette.responses import Response, HTMLResponse
 
 from starlette.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -40,7 +43,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     redis_client = redis.from_url(
         settings.REDIS_URL,
         encoding="utf-8",
@@ -59,7 +62,11 @@ async def lifespan(app: FastAPI):
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Adds basic security headers."""
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: RequestResponseEndpoint,
+    ) -> Response:
         response = await call_next(request)
 
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -68,7 +75,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = (
             "geolocation=(), microphone=(), camera=()"
         )
-
         response.headers["Strict-Transport-Security"] = (
             "max-age=31536000; includeSubDomains"
         )
@@ -103,14 +109,6 @@ app.add_middleware(
 )
 
 app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
-)
-
-
-app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
     session_cookie="admin_session",
@@ -141,7 +139,7 @@ app.include_router(payment_router, tags=["Stripe"])
 
 
 @app.get("/scalar", include_in_schema=False)
-async def scalar_html():
+async def scalar_html() -> HTMLResponse:
     return get_scalar_api_reference(
         openapi_url="/openapi.json",
         title=settings.APP_NAME,

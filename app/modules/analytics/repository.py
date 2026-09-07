@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, extract
 from app.modules.orders.models import Order, OrderItem
 from app.modules.products.models import Product
+from typing import Optional
 
 
 class AnalyticsRepository:
@@ -37,7 +38,7 @@ class AnalyticsRepository:
         return {p.id: p for p in result.scalars().all()}
 
 
-    async def get_all_user_orders(self, user_id: int, statuses: list[str] = None):
+    async def get_all_user_orders(self, user_id: int, statuses: Optional[list[str]] = None):
         """Get all user orders with specific statuses"""
         if statuses is None:
             statuses = ['paid', 'completed', 'delivered']

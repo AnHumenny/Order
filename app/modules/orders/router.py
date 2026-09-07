@@ -1,4 +1,6 @@
 from decimal import Decimal
+from typing import Any, Coroutine
+
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
@@ -24,7 +26,7 @@ async def create_order(
     request: Request,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-):
+) -> OrderRead:
     """Create a new order from the user's current cart.
 
     Converts the authenticated user's shopping cart into a new order.
@@ -59,8 +61,8 @@ async def create_order(
 async def checkout(
     request: Request,
     db: AsyncSession = Depends(get_session),
-    user=Depends(get_current_user),
-):
+    user: User = Depends(get_current_admin),
+) -> dict:
     """Process cart checkout for authenticated user.
 
     Returns checkout details or 400 error if cart is empty/invalid.
@@ -78,8 +80,8 @@ async def delete_my_pending_orders(
     request: Request,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-    admin = Depends(get_current_admin),
-):
+    admin: User = Depends(get_current_admin),
+)  -> dict[str, str | int]:
     """Delete all pending orders for the current user (admin only).
 
     Removes all orders with PENDING status belonging to the authenticated user.
