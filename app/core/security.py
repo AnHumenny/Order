@@ -2,8 +2,7 @@ import bcrypt
 import hashlib
 from dotenv import load_dotenv
 from fastapi import HTTPException
-from jose import ExpiredSignatureError
-from jwt import InvalidTokenError
+from jwt import ExpiredSignatureError, InvalidTokenError
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import jwt
