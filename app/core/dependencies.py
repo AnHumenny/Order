@@ -1,4 +1,4 @@
-from jose import JWTError
+from jwt import InvalidTokenError
 from typing import Optional
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer, HTTPBearer
@@ -27,7 +27,7 @@ async def get_current_user(
 
         user_id = int(sub)
 
-    except JWTError:
+    except InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
@@ -105,7 +105,7 @@ async def get_current_user_optional(
 
         user_id = int(sub)
 
-    except JWTError:
+    except InvalidTokenError:
         return None
     except (ValueError, TypeError):
         return None
