@@ -1,7 +1,7 @@
 from typing import Optional, Sequence
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.modules.products.gallery import ProductImageUpdate
+from app.modules.products.gallery.schemas import ProductImageUpdate
 from app.modules.products.gallery.models import ProductImage
 
 

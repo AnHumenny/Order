@@ -65,7 +65,6 @@ six==1.17.0
 slowapi==0.1.9
 SQLAlchemy==2.0.45
 starlette==1.6.0
-starlette-admin==1.0.0rc1
 stripe==14.1.0
 types-pyasn1==0.6.0.20260724
 typing-inspection==0.4.2

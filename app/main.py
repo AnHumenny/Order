@@ -7,7 +7,6 @@ from scalar_fastapi import get_scalar_api_reference
 
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
 from starlette.responses import Response, HTMLResponse
 
@@ -22,7 +21,7 @@ from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.core.rate_limiter import setup_rate_limiter
 
-from app.modules.private_modules.admin import admin
+from app.modules.private_modules.administrator.router import router as administrator_router
 from app.modules.private_modules.auth.router import router as auth_router
 from app.modules.users.router import router as users_router
 from app.modules.category.router import router as categories_router
@@ -108,23 +107,13 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
 
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.SECRET_KEY,
-    session_cookie="admin_session",
-    max_age=3600 * 24,
-    same_site="strict",
-    https_only=True,
-)
-
 setup_rate_limiter(app)
 
 app.add_middleware(SecurityHeadersMiddleware)
 
-
-admin.mount_to(app)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+app.include_router(administrator_router, tags=["Administrator"])
 app.include_router(auth_router, tags=["Auth"])
 app.include_router(users_router, tags=["Users"])
 app.include_router(products_router, tags=["Products"])
@@ -144,3 +133,9 @@ async def scalar_html() -> HTMLResponse:
         openapi_url="/openapi.json",
         title=settings.APP_NAME,
     )
+    
+
+@app.get("/health", include_in_schema=False)
+async def health() -> dict:
+    """Check application health status."""
+    return {"status": "ok"}    
