@@ -86,7 +86,7 @@ class ProductImageService:
         If setting as main image, automatically unsets previous main image.
         """
 
-        if update_data.is_main is True:
+        if update_data.is_main:
             current = await self.image_repo.get_by_id(image_id)
             if current:
                 await self.image_repo.unset_main_image(current.product_id)
