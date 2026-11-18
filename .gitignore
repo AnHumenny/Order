@@ -99,3 +99,4 @@ app/modules/admin/
 app/modules/auth/
 app/modules/currency/
 app/modules/payment/
+app/scripts/
