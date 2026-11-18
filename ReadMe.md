@@ -1,7 +1,23 @@
+### 
+Backend для интернет-магазина на FastAPI. Обеспечивает каталог товаров, корзину, оформление заказов, приём платежей (Stripe + YooKassa), аналитику и приватную админ-панель.
 ----------------------------------------------------
 ----------------------------------------------------
 ### React + TypeScript + Vite
-[![YouTube](https://img.shields.io/badge/YouTube-Video_rewiev-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/57KA-9s7QD4?si=ODUezMeIz8SNlg7E)
+[![YouTube]]
+----------------------------------------------------
+
+## Architecture
+
+Проект построен по слоистой архитектуре (Layered Architecture) с чётким разделением ответственности:
+
+- **`router.py`** — HTTP-слой (эндпоинты, валидация через Pydantic, зависимости).
+- **`service.py`** — бизнес-логика (правила, транзакции, вызовы репозиториев).
+- **`repository.py`** — слой доступа к данным (SQLAlchemy-запросы).
+- **`models.py`** — ORM-модели (таблицы БД).
+- **`schemas.py`** — Pydantic-схемы (валидация запросов/ответов).
+
+**Приватные модули** (`private_modules/`) содержат код, доступный только администратору (`administrator/`) и интеграции (`payment/`, `currency/`). Это позволяет изолировать админский API от пользовательского и подключать его отдельно.
+
 ----------------------------------------------------
 ----------------------------------------------------
 
@@ -10,157 +26,154 @@
 ### backend
 
 ```
-Project/
-├── app/
-│   ├── core/                              # Application core
-│   │   ├── config.py                      # Configuration (settings, environment variables)
-│   │   ├── database.py                    # Database connection, sessions
-│   │   ├── dependencies.py                # Common dependencies (pagination, auth)
-│   │   ├── rate_limiter.py                # Rate-limiting for endpoints
-│   │   ├── security.py                    # Password hashing, JWT tokens
-│   │   └── session.py                     # Session cookies
-│   │
-│   ├── modules/                           # Application modules (functional blocks)
-│   │   │
-│   │   ├── analytics/                     # Analytics and statistics
+.
+├── alembic
+│   ├── backup_versions/*
+│   ├── versions/*
+│   ├── env.py
+│   ├── README
+│   └── script.py.mako
+├── app
+│   ├── core
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── dependencies.py
+│   │   ├── logging_config.py
+│   │   ├── rate_limiter.py
+│   │   ├── security.py
+│   │   └── session.py
+│   ├── modules
+│   │   ├── analytics
+│   │   │   ├── repository.py
+│   │   │   ├── router.py
+│   │   │   └── service.py
+│   │   ├── cart
+│   │   │   ├── models.py
+│   │   │   ├── repository.py
+│   │   │   ├── router.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── category
+│   │   │   ├── models.py
+│   │   │   ├── repository.py
+│   │   │   ├── router.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── orders
+│   │   │   ├── models.py
+│   │   │   ├── repository.py
+│   │   │   ├── router.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── private_modules
+│   │   │   ├── administrator
+│   │   │   │   ├── repositories
+│   │   │   │   │   ├── categories.py
+│   │   │   │   │   ├── orders.py
+│   │   │   │   │   ├── products.py
+│   │   │   │   │   └── users.py
+│   │   │   │   ├── routers
+│   │   │   │   │   ├── categories.py
+│   │   │   │   │   ├── me.py
+│   │   │   │   │   ├── orders.py
+│   │   │   │   │   ├── products.py
+│   │   │   │   │   └── users.py
+│   │   │   │   ├── schemas
+│   │   │   │   │   ├── categories.py
+│   │   │   │   │   ├── orders.py
+│   │   │   │   │   ├── products.py
+│   │   │   │   │   └── users.py
+│   │   │   │   ├── services
+│   │   │   │   │   ├── categories.py
+│   │   │   │   │   ├── orders.py
+│   │   │   │   │   ├── products.py
+│   │   │   │   │   └── users.py
+│   │   │   │   ├── dependencies.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── router.py
+│   │   │   ├── auth
+│   │   │   │   ├── dependencies.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── models.py
+│   │   │   │   ├── repository.py
+│   │   │   │   ├── router.py
+│   │   │   │   ├── schemas.py
+│   │   │   │   └── service.py
+│   │   │   ├── currency
+│   │   │   │   ├── currency.py
+│   │   │   │   ├── dependencies.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── middleware.py
+│   │   │   │   ├── repository.py
+│   │   │   │   ├── router.py
+│   │   │   │   ├── schemas.py
+│   │   │   │   └── service.py
+│   │   │   ├── payment
+│   │   │   │   ├── stripe
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── stripe_client.py
+│   │   │   │   │   ├── stripe_router.py
+│   │   │   │   │   └── stripe_service.py
+│   │   │   │   ├── yookassa
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── yookassa_client.py
+│   │   │   │   │   ├── yookassa_router.py
+│   │   │   │   │   └── yookassa_service.py
+│   │   │   │   └── __init__.py
+│   │   │   └── __init__.py
+│   │   ├── products
+│   │   │   ├── gallery
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── models.py
+│   │   │   │   ├── repository.py
+│   │   │   │   ├── routes.py
+│   │   │   │   ├── schemas.py
+│   │   │   │   ├── service.py
+│   │   │   │   └── upload.py
+│   │   │   ├── dependencies.py
 │   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Analytics models
-│   │   │   ├── schemas.py                 # Pydantic schemas
-│   │   │   ├── repository.py              # Database queries for analytics
-│   │   │   ├── service.py                 # Analytics business logic
-│   │   │   └── router.py                  # Endpoints (/analytics/...)
-│   │   │
-│   │   ├── cart/                          # Shopping cart
+│   │   │   ├── models.py
+│   │   │   ├── repository.py
+│   │   │   ├── router.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── users
 │   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Cart model
-│   │   │   ├── schemas.py                 # Pydantic schemas
-│   │   │   ├── repository.py              # Database operations
-│   │   │   ├── service.py                 # Cart logic
-│   │   │   └── router.py                  # Endpoints (/cart/...)
-│   │   │
-│   │   ├── category/                      # Product categories
-│   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Category model
-│   │   │   ├── schemas.py                 # Pydantic schemas
-│   │   │   ├── repository.py              # Database queries
-│   │   │   ├── service.py                 # Business logic
-│   │   │   └── router.py                  # Endpoints (/categories/...)
-│   │   │
-│   │   ├── orders/                        # Orders
-│   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Order models
-│   │   │   ├── schemas.py                 # Pydantic schemas
-│   │   │   ├── repository.py              # Database operations
-│   │   │   ├── service.py                 # Order logic
-│   │   │   └── router.py                  # Endpoints (/orders/...)
-│   │   │
-│   │   ├── products/                      # Products
-│   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # Product models
-│   │   │   ├── schemas.py                 # Pydantic schemas
-│   │   │   ├── repository.py              # Database queries
-│   │   │   ├── service.py                 # Business logic
-│   │   │   ├── router.py                  # Endpoints (/products/...)
-│   │   │   └── gallery/                   # Image gallery
-│   │   │       ├── __init__.py
-│   │   │       ├── models.py              # Gallery models
-│   │   │       ├── schemas.py             # Pydantic schemas
-│   │   │       ├── repository.py          # Database operations
-│   │   │       ├── service.py             # Gallery logic
-│   │   │       ├── router.py              # API endpoints
-│   │   │       └── upload.py              # File upload logic
-│   │   │
-│   │   ├──  users/                         # Users (extended profile)
-│   │   │   ├── __init__.py
-│   │   │   ├── models.py                  # User model
-│   │   │   ├── schemas.py                 # Pydantic schemas
-│   │   │   ├── repository.py              # Database operations
-│   │   │   ├── service.py                 # User logic
-│   │   │   ├── dependencies.py            # Dependencies (get_current_user)
-│   │   │   └── router.py                  # Endpoints (/users/...)
-│   │   │
-│   │   └── private_modules
-│   │       ├── auth/                          # Authentication and users
-│   │       │   ├── __init__.py                # Module initialization, router export
-│   │       │   ├── models.py                  # SQLAlchemy models (User)
-│   │       │   ├── schemas.py                 # Pydantic schemas for validation
-│   │       │   ├── repository.py              # CRUD operations with database
-│   │       │   ├── service.py                 # Business logic (registration, login)
-│   │       │   ├── router.py                  # FastAPI endpoints
-│   │       │   └── dependencies.py            # Dependencies (get_current_user)
-│   │       │    
-│   │       ├── currency/                      # Multi-currency payments
-│   │       │   ├── __init__.py                # Module initialization, router export
-│   │       │   ├── currency.py                # Currency Constants: List of supported currencies, symbols, flags, names
-│   │       │   ├── models.py                  # SQLAlchemy models (exchange currency)
-│   │       │   ├── schemas.py                 # Pydantic schemas for validation
-│   │       │   ├── middleware.py              # Middleware for determining user currency by headers/IP
-│   │       │   ├── repository.py              # CRUD operations with database
-│   │       │   ├── service.py                 # Business logic (getting rates, exchange rates, ... )
-│   │       │   ├── router.py                  # FastAPI endpoints
-│   │       │   └── dependencies.py            # Dependencies (get_country_by_ip, get_user_currency)
-│   │       │
-│   │       ├── payment/                        # Payment processing
-│   │       │   ├── __init__.py                 # Module initialization
-│   │       │   │
-│   │       │   ├── stripe/                     # Stripe payment provider
-│   │       │   │   ├── __init__.py
-│   │       │   │   ├── stripe_client.py        # Stripe API client
-│   │       │   │   ├── stripe_router.py        # Endpoints (/payment/stripe/...)
-│   │       │   │   └── stripe_service.py       # Stripe business logic
-│   │       │   │
-│   │       │   ├── yookassa/                   # YooKassa payment provider
-│   │       │   │   ├── __init__.py
-│   │       │   │   ├── yookassa_client.py      # YooKassa API client
-│   │       │   │   ├── yookassa_router.py      # Endpoints (/payment/yookassa/...)
-│   │       │   │   └── yookassa_service.py     # YooKassa business logic
-│   │       │   │
-│   │       │   └── __init__.py
-│   │       │    
-│   │       └── admin/         # Admin dashboard (built-in FastAPI admin interface)
-│   │           ├── __init__.py                # Module initialization
-│   │           ├── views/                     # Admin view definitions
-│   │           │   ├── __init__.py
-│   │           │   ├── dashboard.py           # Main admin dashboard view
-│   │           │   ├── users.py               # User management views
-│   │           │   ├── products.py            # Product management views
-│   │           │   ├── categories.py          # Category management views
-│   │           │   └── orders.py              # Order management views
-│   │           ├── auth.py                    # Admin authentication & access control
-│   │           └── config.py                  # Admin interface configuration
-│   │
-│   └── main.py                                # Entry point, router registration
-│
-├── static/                    
-│      └── product/# Photogallery  
-│          └── id category/
-│              └── id subcategory/     # Subcategories (id_subcategory) can be nested recursively to any depth
-│                  └── file.webp      
-│
-├── alembic/                                   # Database migrations
-├── .env                                       # Environment variables
-├── env_example                                # Example of environment variables
-├── .gitignore
+│   │   │   ├── models.py
+│   │   │   └── router.py
+│   │   └── __init__.py
+│   ├── __init__.py
+│   └── main.py
+├── logs
+│   ├── app.log
+│   └── yookassa_webhook.log
+├── static
+│   └── products/*
 ├── alembic.ini
-└── requirements.txt
+├── env_example.txt
+├── pyproject.toml
+├── ReadMe.md
+├── requirements.txt
+└── yookassa_webhook.log
+
 ```
 
 ### Features
 
 ```
-| Module          | Description                 | Endpoints
-|-----------------|-----------------------------|-------------------------------------------------------------|
-| **Admin**       | Control panel               | *:8000/admin/
-| **Auth**        | User model                  | registration, list of users, delete user	
-| **Users**       | Authentication, current user| authorization, current user
-| **Products**    | Product management	        | GET /products, GET /products/{id}, POST /products (admin)...
-| **Categories**  | Product categories	        | GET /categories, GET /categories/{id}/products...
-| **Cart**        | Shopping cart               | GET /cart, POST /cart/add, DELETE /cart/remove/{item_id}...
-| **Orders**      | Checkout and order history  | POST /orders, GET /orders, GET /orders/{id}...
-| **Payment**     | Stripe integration          | POST /payment/create-checkout-session, POST /payment/webhook
-| **Analytics**   | Purchase statistics	        | GET /analytics/user-purchases, GET /analytics/user-stats
-| **Currency**    | Multi-currency support      | GET /currencies/rates, GET /currencies/convert, GET /currencies/detect, GET /currencies/supported 
-```
+| Module | Description | Endpoints |
+| :--- | :--- | :--- |
+| **Auth** | Registration, JWT issuance | `POST /users/login`, `POST /users/register` | ...
+| **Users** | User profile management | `GET /users/me` | ...
+| **Products** | Product catalog | `GET /products`, `GET /products/{id}` | ...
+| **Categories** | Product categories tree | `GET /categories`, `GET /categories/{id}/products` | ...
+| **Cart** | Shopping cart | `GET /cart`, `POST /cart/add`, `DELETE /cart/remove/{item_id}` | ...
+| **Orders** | Order creation and history | `POST /orders/from-cart`, `POST /orders/checkout`, `DELETE /orders/my` | ...
+| **Payment** | Stripe & YooKassa integration | `POST /payment/stripe/create-checkout-session`, `POST /payment/yookassa/create-payment` | ...
+| **Analytics** | Purchase statistics | `GET /analytics/user-purchases`, `GET /analytics/user-stats` | ...
+| **Currency** | Multi-currency support | `GET /currencies/rates`, `GET /currencies/convert`, `GET /currencies/detect` | ...
+| **Administrator** | **Admin Control Panel (Private)** | **`GET /api/admin/me`, `GET /api/admin/users`, `GET /api/admin/orders`, `GET /api/admin/products`, `GET /api/admin/categories/tree`** |  ...
+| **Gallery** | **Product image management** | **`GET /images/`, `POST /images/upload`, `PATCH /images/{id}`, `POST /images/{id}/set-main`** | ... ```
 
 ### Technologies
 ```
